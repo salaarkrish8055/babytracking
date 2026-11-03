@@ -456,8 +456,7 @@ function openLogDialog(type = "feed", log = null) {
   logForm.querySelector('button[type="submit"]').textContent = log ? "Save changes" : "Save this moment";
   if (log) populateLogForm(log);
   logDialog.showModal();
-  if (selectedType === "care") document.querySelector("#care-label").focus();
-  else typeSelect.focus();
+  logDialog.querySelector(".close-button").focus();
 }
 
 function populateLogForm(log) {
