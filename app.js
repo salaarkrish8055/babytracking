@@ -1091,6 +1091,7 @@ updateInstallButton();
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   const serviceWorkerUrl = new URL(`${import.meta.env.BASE_URL}sw.js`, window.location.origin);
   navigator.serviceWorker.register(serviceWorkerUrl, { scope: import.meta.env.BASE_URL })
+    .then((registration) => registration.update())
     .catch((error) => console.error("Unable to register the app for offline loading.", error));
 }
 

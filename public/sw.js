@@ -1,4 +1,4 @@
-const CACHE_NAME = "krish-baby-shell-v2";
+const CACHE_NAME = "krish-baby-shell-v3";
 const APP_ROOT = new URL("./", self.registration.scope);
 
 self.addEventListener("install", (event) => {
