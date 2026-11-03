@@ -107,9 +107,9 @@
               <h1>Every little moment <span>matters.</span></h1>
               <p class="welcome-subtitle">A gentle snapshot of <strong id="welcome-baby-name">Krish</strong>'s day, all in one place.</p>
             </div>
-            <button class="button button-primary add-log-top" type="button" data-open-log>
+            <button class="button button-primary add-log-top" type="button" id="open-overall-log">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-              <span>Add a log</span>
+              <span>Log activities</span>
             </button>
           </section>
 
@@ -241,6 +241,30 @@
         </div>
         <div class="form-error" id="form-error" role="alert"></div>
         <div class="modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save this moment</button></div>
+      </form>
+    </dialog>
+
+    <dialog class="modal overall-log-modal" id="overall-log-dialog" aria-labelledby="overall-log-title">
+      <form id="overall-log-form">
+        <div class="modal-header">
+          <div><p class="eyebrow">A FULL PICTURE OF THIS MOMENT</p><h2 id="overall-log-title">Log activities</h2></div>
+          <button class="icon-button close-button" type="button" data-close-dialog aria-label="Close dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        </div>
+        <div class="form-field">
+          <label for="overall-log-time">When did these moments happen?</label>
+          <input id="overall-log-time" name="overallTime" type="datetime-local" required />
+        </div>
+        <fieldset class="overall-log-options">
+          <legend>Select everything you want to log</legend>
+          <div class="overall-log-option-list" id="overall-log-options"></div>
+        </fieldset>
+        <div id="overall-log-details" class="overall-log-details"></div>
+        <div class="form-field">
+          <label for="overall-log-notes">A note for these entries <span class="optional">(optional)</span></label>
+          <textarea id="overall-log-notes" name="overallNotes" rows="2" maxlength="1000" placeholder="Anything you'd like to remember?"></textarea>
+        </div>
+        <div class="form-error" id="overall-log-error" role="alert"></div>
+        <div class="modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save selected logs</button></div>
       </form>
     </dialog>
 

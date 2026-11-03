@@ -91,6 +91,17 @@ h1 span { color: #8074dc; }
 .quick-actions-hint p { margin: 0; }
 .quick-action[draggable="true"] { cursor: grab; }
 .quick-action.is-dragging { opacity: .4; cursor: grabbing; }
+.overall-log-option-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.overall-log-option { min-height: 40px; padding: 8px 13px; color: #70768a; background: #fff; border: 1px solid #e6e8ef; border-radius: 9px; font-size: 11px; font-weight: 600; }
+.overall-log-option:hover { border-color: #c9c3f4; }
+.overall-log-option[aria-pressed="true"] { color: var(--purple-dark); background: var(--purple-pale); border-color: #bcb4ef; }
+.overall-log-options { min-width: 0; padding: 0; margin: 0 0 18px; border: 0; }
+.overall-log-options legend { margin-bottom: 9px; color: #545a6c; font-size: 11px; font-weight: 600; }
+.overall-log-details { display: grid; gap: 12px; }
+.overall-log-section { padding: 14px; background: #faf9ff; border: 1px solid #eeecf8; border-radius: 10px; }
+.overall-log-section h3 { margin: 0 0 12px; color: #4a5063; font-size: 13px; }
+.overall-log-section .form-field:last-child, .overall-log-section .form-hint:last-child { margin-bottom: 0; }
+.overall-log-section .form-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .feed-action .quick-icon { color: #d49b48; background: #fff5e8; }
 .sleep-action .quick-icon { color: #7481d4; background: #eef0ff; }
 .diaper-action .quick-icon { color: #49a991; background: #eaf7f2; }
@@ -164,6 +175,11 @@ h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spaci
 .activity-copy { min-width: 0; }
 .activity-copy strong { display: block; margin-bottom: 3px; color: #4a5063; font-size: 11px; font-weight: 600; }
 .activity-copy small { display: block; overflow: hidden; color: #9a9eac; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.activity-sleep-details { display: grid; min-width: 0; gap: 2px; }
+.activity-copy .activity-sleep-details small { overflow: visible; line-height: 1.4; text-overflow: clip; white-space: normal; }
+.activity-copy .activity-sleep-duration { color: #555c70; font-size: 10px; font-weight: 700; }
+.activity-copy .activity-sleep-times { color: #8d93a2; }
+.activity-copy .activity-note { margin-top: 2px; }
 .activity-meta { display: flex; align-items: center; gap: 11px; }
 .activity-time { color: #8f94a3; font-size: 10px; white-space: nowrap; }
 .row-action-button { min-height: 32px; gap: 5px; padding: 0 9px; font-size: 10px; }
@@ -316,14 +332,16 @@ h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spaci
   .welcome-row .eyebrow { font-size: 9px; letter-spacing: 1px; }
   h1 { max-width: 100%; font-size: clamp(23px, 6vw, 28px); }
   .welcome-subtitle { max-width: 100%; font-size: 12px; line-height: 1.55; }
-  .add-log-top { width: 44px; min-width: 44px; height: 44px; padding: 0; overflow: hidden; gap: 18px; font-size: 0; }
+  .welcome-row { align-items: flex-start; flex-wrap: wrap; }
+  .welcome-row > div { flex: 1 1 100%; min-width: 0; }
+  .add-log-top { width: 100%; min-width: 0; min-height: 46px; padding: 0 14px; gap: 8px; font-size: 12px; }
   .add-log-top svg { min-width: 18px; }
   .quick-actions { gap: 9px; margin-bottom: 26px; }
-  .quick-action { min-height: 64px; gap: 8px; padding: 10px; }
-  .quick-icon { width: 34px; height: 34px; }
-  .quick-action > span:nth-child(2) { gap: 3px; }
-  .quick-action strong { font-size: 11px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
-  .quick-action small { font-size: 9px; line-height: 1.25; white-space: normal; }
+  .quick-action { min-height: 60px; gap: 7px; padding: 9px; }
+  .quick-icon { width: 32px; height: 32px; }
+  .quick-action > span:nth-child(2) { gap: 3px; min-width: 0; }
+  .quick-action strong { min-width: 0; font-size: 11px; line-height: 1.3; white-space: normal; overflow-wrap: anywhere; }
+  .quick-action small { min-width: 0; font-size: 9px; line-height: 1.3; white-space: normal; overflow-wrap: anywhere; }
   .quick-plus { flex: 0 0 auto; font-size: 17px; }
   .quick-actions-hint { gap: 5px; margin: -17px 0 24px; font-size: 10px; line-height: 1.45; }
   .section-heading { align-items: center; margin-bottom: 12px; }
@@ -333,19 +351,20 @@ h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spaci
   .date-pill { width: 150px; min-height: 40px; font-size: 16px; }
   .overview-day-button { width: 40px; height: 40px; }
   .stats-grid { gap: 9px; }
-  .stat-card { min-height: 132px; padding: 12px 11px 11px; }
+  .stat-card { min-height: 124px; padding: 11px 10px 10px; }
   .stat-card-top { gap: 7px; }
-  .stat-icon { width: 28px; height: 28px; }
-  .stat-label { font-size: 8px; letter-spacing: .6px; white-space: normal; line-height: 1.3; }
-  .stat-value { min-height: 42px; }
-  .stat-value strong { font-size: 21px; }
-  .stat-detail { min-height: 26px; font-size: 10px; line-height: 1.35; white-space: normal; }
+  .stat-icon { width: 26px; height: 26px; flex: 0 0 auto; }
+  .stat-label { min-width: 0; font-size: 8px; letter-spacing: .45px; white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }
+  .stat-value { min-width: 0; min-height: 39px; gap: 5px; }
+  .stat-value strong { min-width: 0; font-size: clamp(18px, 5.2vw, 21px); overflow-wrap: anywhere; }
+  .stat-value span { min-width: 0; font-size: 9px; overflow-wrap: anywhere; }
+  .stat-detail { min-height: 25px; margin-bottom: 10px; font-size: 9px; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
   .activity-panel { padding: 17px 14px 8px; margin-top: 24px; }
   .activity-heading { align-items: flex-start; flex-wrap: wrap; }
-  .activity-controls { width: 100%; align-items: center; justify-content: flex-start; gap: 6px; }
-  .filter-select { min-width: 0; min-height: 44px; flex: 1; font-size: 16px; }
-  .activity-controls > .text-button { min-height: 40px; padding: 0 9px; font-size: 11px; }
-  .inline-clear-confirmation { width: 100%; justify-content: flex-start; }
+  .activity-controls { display: grid; width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; gap: 6px; }
+  .filter-select { width: 100%; min-width: 0; min-height: 44px; grid-column: 1 / -1; padding-right: 28px; font-size: 16px; }
+  .activity-controls > .text-button { min-width: 0; min-height: 40px; padding: 0 5px; font-size: 10px; line-height: 1.2; white-space: normal; overflow-wrap: anywhere; }
+  .inline-clear-confirmation { width: 100%; grid-column: 1 / -1; justify-content: flex-start; }
   .inline-clear-confirmation .button { min-height: 40px; }
   .activity-item { grid-template-columns: 38px minmax(0, 1fr) auto; gap: 9px; min-height: 68px; }
   .activity-type-icon { width: 34px; height: 34px; }
@@ -357,17 +376,37 @@ h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spaci
   .row-delete-confirmation { justify-content: flex-end; }
   .page-footer { flex-direction: column; gap: 5px; padding-bottom: 8px; font-size: 10px; }
   .modal { width: calc(100vw - 24px); max-width: 520px; max-height: 88vh; max-height: 88dvh; margin: auto; }
-  .modal form { padding: 20px 17px max(18px, env(safe-area-inset-bottom, 0px)); }
-  .modal-header { margin-bottom: 17px; }
-  .form-field { gap: 8px; margin-bottom: 16px; }
-  .form-field label, .form-field-label { font-size: 12px; }
-  .form-field input, .form-field select { min-height: 46px; font-size: 16px; }
-  .form-field textarea { min-height: 88px; font-size: 16px; }
+  .modal form { padding: 16px 14px max(16px, env(safe-area-inset-bottom, 0px)); }
+  .modal-header { gap: 10px; margin-bottom: 15px; }
+  .modal-header > div { min-width: 0; }
+  .modal-header .eyebrow { font-size: 9px; letter-spacing: .9px; line-height: 1.4; }
+  .modal-header h2 { font-size: clamp(18px, 5vw, 20px); line-height: 1.25; overflow-wrap: anywhere; }
+  .form-field { min-width: 0; gap: 7px; margin-bottom: 13px; }
+  .form-field label, .form-field-label { font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+  .form-field input, .form-field select { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; font-size: 16px; }
+  .form-field textarea { width: 100%; min-width: 0; min-height: 76px; padding: 9px 10px; font-size: 16px; }
   .auth-card .form-field input, .custom-log-add input { font-size: 16px; }
-  .feed-method-option, .feed-amount-option { min-height: 44px; font-size: 13px; }
+  .overall-log-modal form { padding-right: 14px; padding-left: 14px; }
+  .overall-log-modal .form-row { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .overall-log-options { margin-bottom: 14px; }
+  .overall-log-options legend { font-size: 11px; line-height: 1.4; }
+  .overall-log-option-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .overall-log-option { min-width: 0; min-height: 42px; padding: 7px 8px; font-size: 11px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
+  .overall-log-details { gap: 9px; }
+  .overall-log-section { min-width: 0; padding: 11px; }
+  .overall-log-section h3 { margin-bottom: 10px; font-size: 12px; }
+  .overall-log-section .feed-method-options { gap: 6px; }
+  .overall-log-section .feed-method-option { min-width: 0; min-height: 42px; padding: 7px 5px; font-size: 11px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
+  .overall-log-section .feed-amount-options { gap: 5px; }
+  .overall-log-section .feed-amount-option { min-width: 0; min-height: 40px; padding: 5px 3px; font-size: 12px; }
+  .form-hint { font-size: 10px; line-height: 1.45; overflow-wrap: anywhere; }
   .form-row { grid-template-columns: 1fr; gap: 0; }
-  .modal-actions { position: sticky; bottom: 0; padding: 12px 0 max(2px, env(safe-area-inset-bottom, 0px)); background: #fff; }
-  .modal-actions .button { min-height: 46px; font-size: 12px; }
+  .overall-log-section .form-row { grid-template-columns: 1fr; gap: 0; }
+  .overall-log-option-list { gap: 7px; }
+  .overall-log-option { min-height: 44px; font-size: 12px; }
+  .modal-actions { position: sticky; bottom: 0; display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.4fr); gap: 8px; padding: 10px 0 max(2px, env(safe-area-inset-bottom, 0px)); background: #fff; }
+  .modal-actions .button { width: 100%; min-width: 0; min-height: 44px; padding: 7px 8px; font-size: 11px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
+  .modal-actions .button:only-child { grid-column: 1 / -1; }
   .auth-card { padding: 24px 21px; }
   .profile-modal-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .profile-modal-actions .button { min-height: 44px; padding: 0 10px; }

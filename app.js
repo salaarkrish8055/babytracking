@@ -16,6 +16,7 @@ const icons = {
 const labels = { feed: "Feeding", sleep: "Sleep", diaper: "Diaper change", care: "Other care" };
 const maxCustomLogTypes = 12;
 const logDialog = document.querySelector("#log-dialog");
+const overallLogDialog = document.querySelector("#overall-log-dialog");
 const profileDialog = document.querySelector("#profile-dialog");
 const passwordDialog = document.querySelector("#password-dialog");
 const logForm = document.querySelector("#log-form");
@@ -46,6 +47,8 @@ let pendingDeleteLogId = null;
 let confirmingClearLogs = false;
 let activityActionError = "";
 let activityActionInProgress = false;
+let overallSelectedTypes = new Set();
+let overallFieldIdCounter = 0;
 
 function localDateKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -102,7 +105,8 @@ function renderDashboard() {
   const overviewKey = localDateKey(overviewDate);
   const todayLogs = logs.filter((log) => localDateKey(new Date(log.time)) === overviewKey);
   const feedLogs = todayLogs.filter((log) => log.type === "feed");
-  const sleepMinutes = todayLogs.filter((log) => log.type === "sleep").reduce((total, log) => total + sleepDurationForDay(log, overviewDate), 0);
+  const sleepLogs = logs.filter((log) => log.type === "sleep");
+  const sleepMinutes = sleepLogs.reduce((total, log) => total + sleepDurationForDay(log, overviewDate), 0);
   const diaperLogs = todayLogs.filter((log) => log.type === "diaper");
   const careLogs = todayLogs.filter((log) => log.type === "care");
   document.querySelector(".stats-grid").setAttribute(
@@ -129,13 +133,15 @@ function renderDashboard() {
 }
 
 function sleepDurationForDay(log, day) {
-  if (Number(log.duration) > 0) return Number(log.duration);
-  const start = new Date(log.time);
+  const endTime = new Date(log.time).getTime();
+  const duration = Number(log.duration);
+  const startTime = duration > 0 ? endTime - duration * 60000 : endTime;
   const dayStart = new Date(day);
+  dayStart.setHours(0, 0, 0, 0);
   const dayEnd = new Date(dayStart);
   dayEnd.setDate(dayEnd.getDate() + 1);
-  const intervalStart = Math.max(start.getTime(), dayStart.getTime());
-  const intervalEnd = Math.min(Date.now(), dayEnd.getTime());
+  const intervalStart = Math.max(startTime, dayStart.getTime());
+  const intervalEnd = Math.min(duration > 0 ? endTime : Date.now(), dayEnd.getTime());
   return Math.max(0, Math.floor((intervalEnd - intervalStart) / 60000));
 }
 
@@ -169,18 +175,39 @@ function activityDescription(log) {
     const parts = [escapeHTML(log.method || ""), log.amount ? `${log.amount} ml` : "", log.duration ? `${log.duration} min` : ""].filter(Boolean);
     return parts.join(" · ") || "Feeding";
   }
-  if (log.type === "sleep") {
-    const duration = sleepDurationMinutes(log);
-    return log.duration ? `${duration} min` : `In progress · ${duration} min so far`;
-  }
   if (log.type === "diaper") return escapeHTML(log.changeType || "Diaper changed");
   if (log.type === "custom") return "Custom log";
   return "Care moment";
 }
 
+function sleepActivityDetails(log) {
+  const duration = sleepDurationMinutes(log);
+  const storedTime = new Date(log.time);
+  let timing = `Asleep at ${formatTime(storedTime)} · Still asleep`;
+  if (Number(log.duration) > 0) {
+    const start = new Date(storedTime.getTime() - Number(log.duration) * 60000);
+    const wakeDate = localDateKey(storedTime) !== localDateKey(start)
+      ? `${formatDate(storedTime, { weekday: "short", month: "short", day: "numeric" })} `
+      : "";
+    timing = `Asleep at ${formatTime(start)} · Woke up ${wakeDate}at ${formatTime(storedTime)}`;
+  }
+  const note = log.note ? `<small class="activity-note">Note: ${escapeHTML(log.note)}</small>` : "";
+  return `<span class="activity-sleep-details">
+    <small class="activity-sleep-duration">${formatSleepDuration(duration)}</small>
+    <small class="activity-sleep-times">${timing}</small>
+    ${note}
+  </span>`;
+}
+
 function sleepDurationMinutes(log) {
   if (Number(log.duration) > 0) return Number(log.duration);
   return Math.max(0, Math.floor((Date.now() - new Date(log.time).getTime()) / 60000));
+}
+
+function formatSleepDuration(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return hours ? `${hours}h ${remainingMinutes}m` : `${remainingMinutes} min`;
 }
 
 function renderActivity() {
@@ -234,9 +261,12 @@ function renderActivityItem(log) {
   } else if (activityActionMode === "delete") {
     actionMarkup = `<button class="button button-secondary row-action-button" type="button" data-delete-log="${escapeHTML(log.id)}">${trashIcon()}<span>Delete</span></button>`;
   }
+  const activityDetails = log.type === "sleep"
+    ? sleepActivityDetails(log)
+    : `<small>${activityDescription(log)}${note}</small>`;
   return `<article class="activity-item">
     <span class="activity-type-icon ${log.type}">${icons[log.type] || icons.care}</span>
-    <span class="activity-copy"><strong>${escapeHTML(label)}</strong><small>${activityDescription(log)}${note}</small></span>
+    <span class="activity-copy${log.type === "sleep" ? " sleep-activity-copy" : ""}"><strong>${escapeHTML(label)}</strong>${activityDetails}</span>
     <span class="activity-meta"><time class="activity-time" datetime="${escapeHTML(when.toISOString())}">${formatTime(when)}</time>${actionMarkup}</span>
     ${confirmationMarkup}
     ${isPendingDelete && activityActionError ? `<span class="activity-action-error" role="alert">${escapeHTML(activityActionError)}</span>` : ""}
@@ -271,14 +301,15 @@ function trashIcon() {
   return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
 }
 
-function renderDynamicFields(type) {
+function dynamicFieldsMarkup(type, prefix = "", includeSleepStart = true) {
+  const fieldId = (name) => `${prefix}${name}`;
   if (type === "feed") {
-    dynamicFields.innerHTML = `<div class="form-field"><span class="form-field-label" id="feed-method-label">Feeding type</span><input id="feed-method" name="method" type="hidden" value="Breastfeeding" /><div class="feed-method-options" role="group" aria-labelledby="feed-method-label">
+    return `<div class="form-field"><span class="form-field-label" id="${fieldId("feed-method-label")}">Feeding type</span><input id="${fieldId("feed-method")}" name="method" type="hidden" value="Breastfeeding" /><div class="feed-method-options" role="group" aria-labelledby="${fieldId("feed-method-label")}">
         <button class="feed-method-option" type="button" data-feed-method="Breastfeeding" aria-pressed="true">Breastfeeding</button>
         <button class="feed-method-option" type="button" data-feed-method="Bottle" aria-pressed="false">Bottle</button>
         <button class="feed-method-option" type="button" data-feed-method="Solids" aria-pressed="false">Solids</button>
       </div></div>
-      <div class="form-row"><div class="form-field"><span class="form-field-label" id="feed-amount-label">Amount <span class="optional">(ml)</span></span><input id="feed-amount-preset" name="amountPreset" type="hidden" value="" /><div class="feed-amount-options" role="group" aria-labelledby="feed-amount-label">
+      <div class="form-row"><div class="form-field"><span class="form-field-label" id="${fieldId("feed-amount-label")}">Amount <span class="optional">(ml)</span></span><input id="${fieldId("feed-amount-preset")}" name="amountPreset" type="hidden" value="" /><div class="feed-amount-options" role="group" aria-labelledby="${fieldId("feed-amount-label")}">
         <button class="feed-amount-option" type="button" data-feed-amount="10" aria-pressed="false">10</button>
         <button class="feed-amount-option" type="button" data-feed-amount="20" aria-pressed="false">20</button>
         <button class="feed-amount-option" type="button" data-feed-amount="30" aria-pressed="false">30</button>
@@ -286,42 +317,160 @@ function renderDynamicFields(type) {
         <button class="feed-amount-option" type="button" data-feed-amount="50" aria-pressed="false">50</button>
         <button class="feed-amount-option" type="button" data-feed-amount="60" aria-pressed="false">60</button>
         <button class="feed-amount-option" type="button" data-feed-amount="other" aria-pressed="false">Other</button>
-      </div><div class="form-field" id="feed-custom-amount-field" hidden><label for="feed-custom-amount">Enter amount <span class="optional">(ml)</span></label><input id="feed-custom-amount" name="amountCustom" type="number" min="0" max="2000" step="1" disabled /></div></div><div class="form-field"><label for="feed-duration">Duration <span class="optional">(min)</span></label><input id="feed-duration" name="duration" type="number" min="0" max="600" step="1" placeholder="Optional" /></div></div>`;
-    const methodInput = document.querySelector("#feed-method");
-    dynamicFields.querySelectorAll("[data-feed-method]").forEach((button) => {
-      button.addEventListener("click", () => {
-        methodInput.value = button.dataset.feedMethod;
-        dynamicFields.querySelectorAll("[data-feed-method]").forEach((option) => {
-          option.setAttribute("aria-pressed", String(option === button));
-        });
-      });
-    });
-    const amountPreset = document.querySelector("#feed-amount-preset");
-    const customAmountField = document.querySelector("#feed-custom-amount-field");
-    const customAmountInput = document.querySelector("#feed-custom-amount");
-    dynamicFields.querySelectorAll("[data-feed-amount]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const isOther = button.dataset.feedAmount === "other";
-        amountPreset.value = isOther ? "" : button.dataset.feedAmount;
-        customAmountField.hidden = !isOther;
-        customAmountInput.disabled = !isOther;
-        if (!isOther) customAmountInput.value = "";
-        dynamicFields.querySelectorAll("[data-feed-amount]").forEach((option) => {
-          option.setAttribute("aria-pressed", String(option === button));
-        });
-        if (isOther) customAmountInput.focus();
-      });
-    });
+      </div><div class="form-field" id="${fieldId("feed-custom-amount-field")}" hidden><label for="${fieldId("feed-custom-amount")}">Enter amount <span class="optional">(ml)</span></label><input id="${fieldId("feed-custom-amount")}" name="amountCustom" type="number" min="0" max="2000" step="1" disabled /></div></div><div class="form-field"><label for="${fieldId("feed-duration")}">Duration <span class="optional">(min)</span></label><input id="${fieldId("feed-duration")}" name="duration" type="number" min="0" max="600" step="1" placeholder="Optional" /></div></div>`;
   } else if (type === "sleep") {
-    dynamicFields.innerHTML = `<div class="form-row"><div class="form-field"><label for="sleep-start">Fell asleep</label><input id="sleep-start" name="sleepStart" type="datetime-local" value="${dateTimeValue(new Date())}" required /></div><div class="form-field"><label for="sleep-end">Woke up <span class="optional">(optional)</span></label><input id="sleep-end" name="sleepEnd" type="datetime-local" /></div></div><p class="form-hint">Save now while your baby sleeps. Add the wake-up time later by editing this log.</p>`;
+    const startField = includeSleepStart
+      ? `<div class="form-field"><label for="${fieldId("sleep-start")}">Fell asleep</label><input id="${fieldId("sleep-start")}" name="sleepStart" type="datetime-local" value="${dateTimeValue(new Date())}" required /></div>`
+      : "";
+    return `<div class="form-row">${startField}<div class="form-field"><label for="${fieldId("sleep-end")}">Woke up <span class="optional">(optional)</span></label><input id="${fieldId("sleep-end")}" name="sleepEnd" type="datetime-local" /></div></div><p class="form-hint">Save now while your baby sleeps. Add the wake-up time later by editing this log.</p>`;
   } else if (type === "diaper") {
-    dynamicFields.innerHTML = `<div class="form-field"><label for="diaper-type">Change type</label><select id="diaper-type" name="changeType"><option>Wet</option><option>Dirty</option><option>Wet &amp; dirty</option><option>Dry</option></select></div>`;
+    return `<div class="form-field"><label for="${fieldId("diaper-type")}">Change type</label><select id="${fieldId("diaper-type")}" name="changeType"><option>Wet</option><option>Dirty</option><option>Wet &amp; dirty</option><option>Dry</option></select></div>`;
   } else if (type.startsWith("custom:")) {
     const name = type.slice("custom:".length);
-    dynamicFields.innerHTML = `<div class="form-field"><span class="form-field-label">${escapeHTML(name)}</span><p class="form-hint">Add the time and any details you'd like to remember.</p></div>`;
-  } else {
-    dynamicFields.innerHTML = `<div class="form-field"><label for="care-label">Care moment</label><input id="care-label" name="label" maxlength="60" placeholder="e.g. Bath, tummy time, medicine" required /></div>`;
+    return `<div class="form-field"><span class="form-field-label">${escapeHTML(name)}</span><p class="form-hint">Add any details you'd like to remember.</p></div>`;
   }
+  return `<div class="form-field"><label for="${fieldId("care-label")}">Care moment</label><input id="${fieldId("care-label")}" name="label" maxlength="60" placeholder="e.g. Bath, tummy time, medicine" required /></div>`;
+}
+
+function renderDynamicFields(type) {
+  dynamicFields.innerHTML = dynamicFieldsMarkup(type);
+}
+
+dynamicFields.addEventListener("click", handleDynamicFieldButton);
+document.querySelector("#overall-log-details").addEventListener("click", handleDynamicFieldButton);
+document.querySelector("#overall-log-options").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-overall-type]");
+  if (button) toggleOverallLogType(button.dataset.overallType, button);
+});
+document.querySelector("#open-overall-log").addEventListener("click", openOverallLogDialog);
+overallLogDialog.addEventListener("close", () => overallSelectedTypes.clear());
+
+function logTypeLabel(type) {
+  if (type.startsWith("custom:")) return type.slice("custom:".length);
+  return ({ feed: "Feeding", sleep: "Sleep", diaper: "Diaper", care: "Other care" })[type] || type;
+}
+
+function renderOverallLogOptions() {
+  const options = document.querySelector("#overall-log-options");
+  const types = ["feed", "sleep", "diaper", "care", ...profile.customLogTypes.map((name) => `custom:${name}`)];
+  options.replaceChildren(...types.map((type) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "overall-log-option";
+    button.dataset.overallType = type;
+    button.setAttribute("aria-pressed", "false");
+    button.textContent = logTypeLabel(type);
+    return button;
+  }));
+}
+
+function openOverallLogDialog() {
+  overallSelectedTypes.clear();
+  overallFieldIdCounter = 0;
+  document.querySelector("#overall-log-time").value = dateTimeValue(new Date());
+  document.querySelector("#overall-log-notes").value = "";
+  document.querySelector("#overall-log-error").textContent = "";
+  document.querySelector("#overall-log-details").replaceChildren();
+  renderOverallLogOptions();
+  overallLogDialog.showModal();
+  overallLogDialog.querySelector(".close-button").focus();
+}
+
+function toggleOverallLogType(type, button) {
+  const details = document.querySelector("#overall-log-details");
+  if (overallSelectedTypes.has(type)) {
+    overallSelectedTypes.delete(type);
+    details.querySelector(`[data-selected-log-type="${CSS.escape(type)}"]`)?.remove();
+    button.setAttribute("aria-pressed", "false");
+    return;
+  }
+  overallSelectedTypes.add(type);
+  button.setAttribute("aria-pressed", "true");
+  const section = document.createElement("section");
+  const prefix = `overall-${overallFieldIdCounter++}-`;
+  section.className = "overall-log-section";
+  section.dataset.selectedLogType = type;
+  section.innerHTML = `<h3>${escapeHTML(logTypeLabel(type))}</h3><div data-log-fields>${dynamicFieldsMarkup(type, prefix, false)}</div>`;
+  details.append(section);
+}
+
+function buildLogEntry(type, fields, timeValue, note) {
+  const getValue = (name) => fields.querySelector(`[name="${name}"]`)?.value || "";
+  const customLabel = type.startsWith("custom:") ? type.slice("custom:".length) : "";
+  const logType = customLabel ? "custom" : type;
+  const start = new Date(timeValue);
+  if (Number.isNaN(start.getTime())) return { error: "Please choose a valid date and time." };
+  if (logType !== "sleep" && start > new Date(Date.now() + 60000)) {
+    return { error: "Log time can't be in the future." };
+  }
+
+  const entry = {
+    type: logType,
+    time: start.toISOString(),
+    note: note.trim(),
+  };
+  if (logType === "feed") {
+    entry.method = getValue("method");
+    const amount = getValue("amountPreset") || getValue("amountCustom");
+    entry.amount = amount ? Number(amount) : 0;
+    entry.duration = getValue("duration") ? Number(getValue("duration")) : 0;
+    entry.label = `${entry.method} feed`;
+  } else if (logType === "sleep") {
+    const sleepStartValue = getValue("sleepStart") || timeValue;
+    const sleepStart = new Date(sleepStartValue);
+    if (Number.isNaN(sleepStart.getTime())) return { error: "Please choose a valid sleep start time." };
+    if (sleepStart > new Date(Date.now() + 60000)) return { error: "Sleep start time can't be in the future." };
+    const wakeTime = getValue("sleepEnd");
+    if (wakeTime) {
+      const end = new Date(wakeTime);
+      const duration = Math.round((end.getTime() - sleepStart.getTime()) / 60000);
+      if (Number.isNaN(end.getTime()) || duration <= 0) {
+        return { error: "Wake-up time must be after the nap started." };
+      }
+      if (end > new Date(Date.now() + 60000)) return { error: "Wake-up time can't be in the future." };
+      entry.time = end.toISOString();
+      entry.duration = duration;
+      entry.label = "Nap";
+    } else {
+      entry.time = sleepStart.toISOString();
+      entry.duration = 0;
+      entry.label = "Sleep started";
+    }
+  } else if (logType === "diaper") {
+    entry.changeType = getValue("changeType");
+    entry.label = `${entry.changeType} diaper`;
+  } else if (logType === "custom") {
+    entry.label = customLabel;
+  } else {
+    entry.label = getValue("label").trim();
+  }
+  return { entry };
+}
+
+function handleDynamicFieldButton(event) {
+  const methodButton = event.target.closest("[data-feed-method]");
+  const amountButton = event.target.closest("[data-feed-amount]");
+  const button = methodButton || amountButton;
+  if (!button) return;
+  const fields = button.closest("[data-log-fields]") || dynamicFields;
+  if (methodButton) {
+    fields.querySelector('[name="method"]').value = methodButton.dataset.feedMethod;
+    fields.querySelectorAll("[data-feed-method]").forEach((option) => {
+      option.setAttribute("aria-pressed", String(option === methodButton));
+    });
+    return;
+  }
+  const isOther = amountButton.dataset.feedAmount === "other";
+  fields.querySelector('[name="amountPreset"]').value = isOther ? "" : amountButton.dataset.feedAmount;
+  const customAmountField = fields.querySelector('[id$="feed-custom-amount-field"]');
+  const customAmountInput = fields.querySelector('[name="amountCustom"]');
+  customAmountField.hidden = !isOther;
+  customAmountInput.disabled = !isOther;
+  if (!isOther) customAmountInput.value = "";
+  fields.querySelectorAll("[data-feed-amount]").forEach((option) => {
+    option.setAttribute("aria-pressed", String(option === amountButton));
+  });
+  if (isOther) customAmountInput.focus();
 }
 
 function updateLogTypeOptions() {
@@ -656,7 +805,7 @@ async function handleSession(session) {
     confirmingClearLogs = false;
     activityActionError = "";
     profile = { id: null, name: "Krish", birthday: "", customLogTypes: [], quickLogOrder: [] };
-    for (const dialog of [logDialog, profileDialog, passwordDialog]) {
+    for (const dialog of [logDialog, overallLogDialog, profileDialog, passwordDialog]) {
       if (dialog.open) dialog.close();
     }
     document.querySelector("#app-shell").hidden = true;
@@ -899,70 +1048,18 @@ logForm.addEventListener("submit", async (event) => {
   const data = new FormData(logForm);
   const logIdToUpdate = editingLogId;
   const selectedType = typeSelect.value;
-  const customLabel = selectedType.startsWith("custom:") ? selectedType.slice("custom:".length) : "";
-  const type = customLabel ? "custom" : selectedType;
-  const time = new Date(String(data.get("time")));
   const formError = document.querySelector("#form-error");
   const saveButton = logForm.querySelector('button[type="submit"]');
   formError.textContent = "";
-
-  if (Number.isNaN(time.getTime())) {
-    formError.textContent = "Please choose a valid date and time.";
+  const { entry, error: validationError } = buildLogEntry(
+    selectedType,
+    logForm,
+    String(data.get("time") || ""),
+    String(data.get("notes") || ""),
+  );
+  if (validationError) {
+    formError.textContent = validationError;
     return;
-  }
-  if (type !== "sleep" && time > new Date(Date.now() + 60000)) {
-    formError.textContent = "Log time can't be in the future.";
-    return;
-  }
-  const entry = {
-    type,
-    time: time.toISOString(),
-    note: String(data.get("notes") || "").trim(),
-  };
-
-  if (type === "feed") {
-    entry.method = String(data.get("method"));
-    const amount = data.get("amountPreset") || data.get("amountCustom");
-    entry.amount = amount ? Number(amount) : 0;
-    entry.duration = data.get("duration") ? Number(data.get("duration")) : 0;
-    entry.label = `${entry.method} feed`;
-  } else if (type === "sleep") {
-    const start = new Date(String(data.get("sleepStart")));
-    const wakeTime = String(data.get("sleepEnd") || "");
-    if (Number.isNaN(start.getTime())) {
-      formError.textContent = "Please choose a valid sleep start time.";
-      return;
-    }
-    if (start > new Date(Date.now() + 60000)) {
-      formError.textContent = "Sleep start time can't be in the future.";
-      return;
-    }
-    if (wakeTime) {
-      const end = new Date(wakeTime);
-      const duration = Math.round((end.getTime() - start.getTime()) / 60000);
-      if (Number.isNaN(end.getTime()) || duration <= 0) {
-        formError.textContent = "Wake-up time must be after the nap started.";
-        return;
-      }
-      if (end > new Date(Date.now() + 60000)) {
-        formError.textContent = "Wake-up time can't be in the future.";
-        return;
-      }
-      entry.time = end.toISOString();
-      entry.duration = duration;
-      entry.label = "Nap";
-    } else {
-      entry.time = start.toISOString();
-      entry.duration = 0;
-      entry.label = "Sleep started";
-    }
-  } else if (type === "diaper") {
-    entry.changeType = String(data.get("changeType"));
-    entry.label = `${entry.changeType} diaper`;
-  } else if (type === "custom") {
-    entry.label = customLabel;
-  } else {
-    entry.label = String(data.get("label") || "").trim();
   }
 
   if (!profile.id) {
@@ -988,6 +1085,55 @@ logForm.addEventListener("submit", async (event) => {
     showToast(`${entry.label} ${logIdToUpdate ? "updated" : "saved"}`);
   } catch (error) {
     formError.textContent = databaseError(error, "Saving log");
+  } finally {
+    saveButton.disabled = false;
+  }
+});
+
+document.querySelector("#overall-log-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const errorElement = document.querySelector("#overall-log-error");
+  const saveButton = form.querySelector('button[type="submit"]');
+  errorElement.textContent = "";
+  if (!overallSelectedTypes.size) {
+    errorElement.textContent = "Select at least one activity to log.";
+    return;
+  }
+  if (!profile.id) {
+    errorElement.textContent = "Your baby profile is still loading. Please try again in a moment.";
+    return;
+  }
+
+  const sharedTime = document.querySelector("#overall-log-time").value;
+  const sharedNote = document.querySelector("#overall-log-notes").value;
+  const entries = [];
+  for (const type of overallSelectedTypes) {
+    const section = document.querySelector(`[data-selected-log-type="${CSS.escape(type)}"]`);
+    const { entry, error } = buildLogEntry(type, section.querySelector("[data-log-fields]"), sharedTime, sharedNote);
+    if (error) {
+      errorElement.textContent = `${logTypeLabel(type)}: ${error}`;
+      section.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    entries.push(entry);
+  }
+
+  saveButton.disabled = true;
+  try {
+    const { data, error } = await supabase
+      .from("care_logs")
+      .insert(entries.map(toDatabaseLog))
+      .select("id, type, occurred_at, note, method, amount_ml, duration_minutes, change_type, care_label");
+    if (error) throw error;
+    logs = [...data.map(mapDatabaseLog), ...logs]
+      .sort((a, b) => new Date(b.time) - new Date(a.time));
+    overallLogDialog.close();
+    renderDashboard();
+    setSyncError("");
+    showToast(`${entries.length} ${entries.length === 1 ? "log" : "logs"} saved together`);
+  } catch (error) {
+    errorElement.textContent = databaseError(error, "Saving activities");
   } finally {
     saveButton.disabled = false;
   }

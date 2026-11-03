@@ -4,9 +4,11 @@ A private, installable baby-care tracker for feeding, sleep, diaper changes, and
 
 Use the overview date controls to browse daily totals for today or any earlier date.
 
-Sleep logs can be saved as soon as a baby falls asleep; edit the entry after wake-up to add the end time and calculate the nap duration.
+Sleep logs can be saved as soon as a baby falls asleep; edit the entry after wake-up to add the end time and calculate the nap duration. Overnight sleep is split across calendar days in the overview totals, while Recent activity shows the full duration and the wake-up date when it differs from the asleep date.
 
 In Recent activity, choose **Edit** or **Delete** to reveal per-entry actions. Individual deletes and **Clear all** require an explicit yes/no confirmation.
+
+Use **Log activities** to select several categories, enter their details, and save them together with a shared time and note. The individual quick-log cards remain available.
 
 ## Run locally
 
