@@ -227,6 +227,11 @@ h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spaci
 .health-record-title-row time { flex: 0 0 auto; }
 .health-record-type { color: #8276dd; font-size: 8px; font-weight: 700; letter-spacing: .75px; }
 .health-record-card h3 { margin: 4px 0 5px; color: #41475a; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.health-record-facts { display: grid; margin: 8px 0; border-top: 1px solid #f0f1f5; }
+.health-record-fact { display: grid; grid-template-columns: minmax(105px, .34fr) minmax(0, 1fr); gap: 10px; padding: 7px 0; border-bottom: 1px solid #f3f4f7; }
+.health-record-fact:last-child { border-bottom: 0; }
+.health-record-fact dt { color: #858b9b; font-size: 10px; font-weight: 600; line-height: 1.45; }
+.health-record-fact dd { min-width: 0; margin: 0; color: #596074; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-line; }
 .health-record-details, .health-record-notes { margin: 0 0 6px; color: #858b9b; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
 .health-record-notes { padding-left: 9px; border-left: 2px solid #ece9fa; }
 .health-due-badge { display: inline-flex; padding: 4px 7px; color: #4a8f7e; background: #eef8f3; border-radius: 6px; font-size: 9px; font-weight: 600; }
@@ -527,7 +532,10 @@ h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spaci
   .health-record-type { font-size: 10px; letter-spacing: .6px; }
   .health-record-title-row time { font-size: 11px; }
   .health-record-card h3 { margin: 5px 0 7px; font-size: 15px; line-height: 1.35; }
-  .health-record-details, .health-record-notes { margin-bottom: 8px; font-size: 13px; line-height: 1.5; }
+  .health-record-facts { margin: 9px 0; }
+  .health-record-fact { grid-template-columns: minmax(100px, .4fr) minmax(0, 1fr); gap: 9px; padding: 8px 0; }
+  .health-record-fact dt { font-size: 12px; }
+  .health-record-fact dd { font-size: 13px; line-height: 1.5; }
   .health-due-badge { padding: 5px 8px; font-size: 11px; }
   .health-record-actions { gap: 17px; margin-top: 7px; }
   .health-record-actions .text-button { min-height: 40px; font-size: 12px; }

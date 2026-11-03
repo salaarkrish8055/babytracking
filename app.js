@@ -357,24 +357,48 @@ function renderHealthRecordList() {
   }
   list.innerHTML = records.map((record) => {
     const isPendingDelete = pendingDeleteHealthRecordId === record.id;
-    const details = record.recordType === "vaccination"
-      ? [record.dose && `Dose ${record.dose}`, record.providerName, record.facilityName, record.manufacturer && `By ${record.manufacturer}`, record.lotNumber && `Lot ${record.lotNumber}`].filter(Boolean)
-      : [record.category, record.providerName, record.facilityName, record.reason && `Reason: ${record.reason}`, record.results && `Results: ${record.results}`].filter(Boolean);
+    const formatScheduledValue = (date, time) => {
+      if (!date) return "";
+      const dateLabel = formatDate(new Date(`${date}T00:00:00`), { month: "short", day: "numeric", year: "numeric" });
+      if (!time) return dateLabel;
+      const timeLabel = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" })
+        .format(new Date(`2000-01-01T${time}`));
+      return `${dateLabel} · ${timeLabel}`;
+    };
+    const facts = record.recordType === "vaccination"
+      ? [
+        ["Dose", record.dose],
+        ["Given by", record.providerName],
+        ["Clinic or hospital", record.facilityName],
+        ["Product / manufacturer", record.manufacturer],
+        ["Lot / batch", record.lotNumber],
+        ["Next dose", formatScheduledValue(record.nextDueDate, record.nextDueTime)],
+        ["Notes", record.notes],
+      ]
+      : [
+        ["Appointment time", record.occurredTime && new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(`2000-01-01T${record.occurredTime}`))],
+        ["Provider", record.providerName],
+        ["Facility", record.facilityName],
+        ["Reason for visit", record.reason],
+        ["Results / assessment", record.results],
+        ["Follow-up", formatScheduledValue(record.followUpDate, record.followUpTime)],
+        ["Notes", record.notes],
+      ];
+    const visibleFacts = facts.filter(([, value]) => value);
     const followUpDate = record.recordType === "vaccination" ? record.nextDueDate : record.followUpDate;
     const followUpLabel = record.recordType === "vaccination" ? "Next dose" : "Follow-up";
     const scheduledBadge = record.occurredOn > today
       ? '<span class="health-due-badge">Scheduled</span>'
       : "";
-    const dueBadge = followUpDate
-      ? `<span class="health-due-badge${followUpDate < today ? " overdue" : ""}">${followUpDate < today ? `${followUpLabel} was due` : `${followUpLabel} ${formatDate(new Date(`${followUpDate}T00:00:00`), { month: "short", day: "numeric", year: "numeric" })}`}</span>`
+    const dueBadge = followUpDate && followUpDate < today
+      ? `<span class="health-due-badge overdue">${followUpLabel} was due</span>`
       : "";
     return `<article class="health-record-card">
       <div class="health-record-icon ${record.recordType}" aria-hidden="true">${record.recordType === "vaccination" ? "＋" : "♡"}</div>
       <div class="health-record-content">
         <div class="health-record-title-row"><span class="health-record-type">${record.recordType === "vaccination" ? "VACCINATION" : escapeHTML(record.category || "DOCTOR VISIT")}</span><time datetime="${escapeHTML(record.occurredOn)}">${formatDate(new Date(`${record.occurredOn}T00:00:00`), { month: "short", day: "numeric", year: "numeric" })}</time></div>
         <h3>${escapeHTML(record.title)}</h3>
-        ${details.length ? `<p class="health-record-details">${details.map(escapeHTML).join(" · ")}</p>` : ""}
-        ${record.notes ? `<p class="health-record-notes">${escapeHTML(record.notes)}</p>` : ""}
+        ${visibleFacts.length ? `<dl class="health-record-facts">${visibleFacts.map(([label, value]) => `<div class="health-record-fact"><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl>` : ""}
         ${scheduledBadge}${dueBadge ? ` ${dueBadge}` : ""}
         ${isPendingDelete
           ? `<div class="health-delete-confirmation" role="group" aria-label="Confirm deleting ${escapeHTML(record.title)}"><span>Delete this record?</span><button class="button button-secondary" type="button" data-cancel-health-delete>No</button><button class="button button-danger" type="button" data-confirm-health-delete="${escapeHTML(record.id)}"${healthRecordActionInProgress ? " disabled" : ""}>Yes, delete</button></div>`
