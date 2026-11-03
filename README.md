@@ -2,6 +2,8 @@
 
 A private, installable baby-care tracker for feeding, sleep, diaper changes, and other care moments. It is a static web app, so GitHub Pages hosts the interface; Supabase Auth and Postgres store each signed-in account's profile and logs.
 
+Sleep logs can be saved as soon as a baby falls asleep; edit the entry after wake-up to add the end time and calculate the nap duration.
+
 ## Run locally
 
 ```sh

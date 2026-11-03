@@ -39,6 +39,7 @@ let loadingUserId = null;
 let draggedQuickLogType = null;
 let draggedProfileOrderType = null;
 let quickLogOrderSaveInProgress = false;
+let editingLogId = null;
 
 function localDateKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -82,7 +83,7 @@ function renderDashboard() {
   const todayKey = localDateKey(new Date());
   const todayLogs = logs.filter((log) => localDateKey(new Date(log.time)) === todayKey);
   const feedLogs = todayLogs.filter((log) => log.type === "feed");
-  const sleepMinutes = todayLogs.filter((log) => log.type === "sleep").reduce((total, log) => total + (Number(log.duration) || 0), 0);
+  const sleepMinutes = todayLogs.filter((log) => log.type === "sleep").reduce((total, log) => total + sleepDurationMinutes(log), 0);
   const diaperLogs = todayLogs.filter((log) => log.type === "diaper");
   const careLogs = todayLogs.filter((log) => log.type === "care");
 
@@ -133,10 +134,18 @@ function activityDescription(log) {
     const parts = [escapeHTML(log.method || ""), log.amount ? `${log.amount} ml` : "", log.duration ? `${log.duration} min` : ""].filter(Boolean);
     return parts.join(" · ") || "Feeding";
   }
-  if (log.type === "sleep") return `${log.duration} min`;
+  if (log.type === "sleep") {
+    const duration = sleepDurationMinutes(log);
+    return log.duration ? `${duration} min` : `In progress · ${duration} min so far`;
+  }
   if (log.type === "diaper") return escapeHTML(log.changeType || "Diaper changed");
   if (log.type === "custom") return "Custom log";
   return "Care moment";
+}
+
+function sleepDurationMinutes(log) {
+  if (Number(log.duration) > 0) return Number(log.duration);
+  return Math.max(0, Math.floor((Date.now() - new Date(log.time).getTime()) / 60000));
 }
 
 function renderActivity() {
@@ -183,8 +192,12 @@ function renderActivityItem(log) {
   return `<article class="activity-item">
     <span class="activity-type-icon ${log.type}">${icons[log.type] || icons.care}</span>
     <span class="activity-copy"><strong>${escapeHTML(label)}</strong><small>${activityDescription(log)}${note}</small></span>
-    <span class="activity-meta"><time class="activity-time" datetime="${escapeHTML(when.toISOString())}">${formatTime(when)}</time><button class="delete-log" type="button" data-delete-log="${escapeHTML(log.id)}" aria-label="Delete ${escapeHTML(label)} log">${trashIcon()}</button></span>
+    <span class="activity-meta"><time class="activity-time" datetime="${escapeHTML(when.toISOString())}">${formatTime(when)}</time><span class="activity-actions"><button class="edit-log" type="button" data-edit-log="${escapeHTML(log.id)}" aria-label="Edit ${escapeHTML(label)} log">${editIcon()}</button><button class="delete-log" type="button" data-delete-log="${escapeHTML(log.id)}" aria-label="Delete ${escapeHTML(label)} log">${trashIcon()}</button></span></span>
   </article>`;
+}
+
+function editIcon() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4.5-1 11-11a2.1 2.1 0 0 0-3-3l-11 11L4 20Z"/></svg>';
 }
 
 function trashIcon() {
@@ -233,9 +246,7 @@ function renderDynamicFields(type) {
       });
     });
   } else if (type === "sleep") {
-    const end = new Date();
-    const start = new Date(end.getTime() - 45 * 60 * 1000);
-    dynamicFields.innerHTML = `<div class="form-row"><div class="form-field"><label for="sleep-start">Started</label><input id="sleep-start" name="sleepStart" type="datetime-local" value="${dateTimeValue(start)}" required /></div><div class="form-field"><label for="sleep-end">Woke up</label><input id="sleep-end" name="sleepEnd" type="datetime-local" value="${dateTimeValue(end)}" required /></div></div><p class="form-hint">We'll work out the nap length from these times.</p>`;
+    dynamicFields.innerHTML = `<div class="form-row"><div class="form-field"><label for="sleep-start">Fell asleep</label><input id="sleep-start" name="sleepStart" type="datetime-local" value="${dateTimeValue(new Date())}" required /></div><div class="form-field"><label for="sleep-end">Woke up <span class="optional">(optional)</span></label><input id="sleep-end" name="sleepEnd" type="datetime-local" /></div></div><p class="form-hint">Save now while your baby sleeps. Add the wake-up time later by editing this log.</p>`;
   } else if (type === "diaper") {
     dynamicFields.innerHTML = `<div class="form-field"><label for="diaper-type">Change type</label><select id="diaper-type" name="changeType"><option>Wet</option><option>Dirty</option><option>Wet &amp; dirty</option><option>Dry</option></select></div>`;
   } else if (type.startsWith("custom:")) {
@@ -357,17 +368,71 @@ async function saveQuickLogOrder() {
   }
 }
 
-function openLogDialog(type = "feed") {
+function openLogDialog(type = "feed", log = null) {
+  editingLogId = log?.id ?? null;
   logForm.reset();
   document.querySelector("#form-error").textContent = "";
-  typeSelect.value = type;
-  renderDynamicFields(type);
-  document.querySelector("#log-time-field").hidden = type === "sleep";
-  document.querySelector("#log-time").value = dateTimeValue(new Date());
+  const selectedType = log?.type === "custom" ? `custom:${log.careLabel}` : type;
+  if (log?.type === "custom" && ![...typeSelect.options].some((option) => option.value === selectedType)) {
+    const option = document.createElement("option");
+    option.value = selectedType;
+    option.textContent = log.careLabel;
+    option.dataset.editLogType = "";
+    typeSelect.append(option);
+  }
+  typeSelect.value = selectedType;
+  renderDynamicFields(selectedType);
+  document.querySelector("#log-time-field").hidden = selectedType === "sleep";
+  document.querySelector("#log-time").value = dateTimeValue(log ? new Date(log.time) : new Date());
+  document.querySelector("#log-notes").value = log?.note || "";
+  document.querySelector("#log-title").textContent = log ? "Edit log" : "Add a log";
+  logForm.querySelector('button[type="submit"]').textContent = log ? "Save changes" : "Save this moment";
+  if (log) populateLogForm(log);
   logDialog.showModal();
-  if (type === "care") document.querySelector("#care-label").focus();
+  if (selectedType === "care") document.querySelector("#care-label").focus();
   else typeSelect.focus();
 }
+
+function populateLogForm(log) {
+  if (log.type === "feed") {
+    const methodInput = document.querySelector("#feed-method");
+    methodInput.value = log.method || "Breastfeeding";
+    dynamicFields.querySelectorAll("[data-feed-method]").forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.feedMethod === methodInput.value));
+    });
+
+    const amount = Number(log.amount) || 0;
+    const amountButton = [...dynamicFields.querySelectorAll("[data-feed-amount]")]
+      .find((button) => button.dataset.feedAmount === String(amount));
+    if (amountButton) {
+      document.querySelector("#feed-amount-preset").value = String(amount);
+      amountButton.setAttribute("aria-pressed", "true");
+    } else if (amount > 0) {
+      const otherButton = dynamicFields.querySelector('[data-feed-amount="other"]');
+      otherButton.setAttribute("aria-pressed", "true");
+      document.querySelector("#feed-custom-amount-field").hidden = false;
+      document.querySelector("#feed-custom-amount").disabled = false;
+      document.querySelector("#feed-custom-amount").value = String(amount);
+    }
+    document.querySelector("#feed-duration").value = log.duration || "";
+  } else if (log.type === "sleep") {
+    const end = new Date(log.time);
+    const start = Number(log.duration) > 0
+      ? new Date(end.getTime() - Number(log.duration) * 60000)
+      : end;
+    document.querySelector("#sleep-start").value = dateTimeValue(start);
+    document.querySelector("#sleep-end").value = Number(log.duration) > 0 ? dateTimeValue(end) : "";
+  } else if (log.type === "diaper") {
+    document.querySelector("#diaper-type").value = log.changeType;
+  } else if (log.type === "care") {
+    document.querySelector("#care-label").value = log.careLabel;
+  }
+}
+
+logDialog.addEventListener("close", () => {
+  editingLogId = null;
+  typeSelect.querySelectorAll("[data-edit-log-type]").forEach((option) => option.remove());
+});
 
 function showToast(message) {
   toast.textContent = message;
@@ -422,7 +487,7 @@ function mapDatabaseLog(row) {
     careLabel: row.care_label || "",
   };
   if (log.type === "feed") log.label = `${log.method || "Feeding"} feed`;
-  else if (log.type === "sleep") log.label = "Nap";
+  else if (log.type === "sleep") log.label = Number(log.duration) > 0 ? "Nap" : "Sleep in progress";
   else if (log.type === "diaper") log.label = `${log.changeType || "Changed"} diaper`;
   else if (log.type === "custom") log.label = log.careLabel || "Custom log";
   else log.label = log.careLabel || "Care moment";
@@ -736,7 +801,8 @@ window.addEventListener("hashchange", () => updateNavigation());
 logForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = new FormData(logForm);
-  const selectedType = String(data.get("type"));
+  const logIdToUpdate = editingLogId;
+  const selectedType = typeSelect.value;
   const customLabel = selectedType.startsWith("custom:") ? selectedType.slice("custom:".length) : "";
   const type = customLabel ? "custom" : selectedType;
   const time = new Date(String(data.get("time")));
@@ -766,19 +832,34 @@ logForm.addEventListener("submit", async (event) => {
     entry.label = `${entry.method} feed`;
   } else if (type === "sleep") {
     const start = new Date(String(data.get("sleepStart")));
-    const end = new Date(String(data.get("sleepEnd")));
-    const duration = Math.round((end.getTime() - start.getTime()) / 60000);
-    if (!Number.isFinite(duration) || duration <= 0) {
-      formError.textContent = "Wake-up time must be after the nap started.";
+    const wakeTime = String(data.get("sleepEnd") || "");
+    if (Number.isNaN(start.getTime())) {
+      formError.textContent = "Please choose a valid sleep start time.";
       return;
     }
-    if (end > new Date(Date.now() + 60000)) {
-      formError.textContent = "Wake-up time can't be in the future.";
+    if (start > new Date(Date.now() + 60000)) {
+      formError.textContent = "Sleep start time can't be in the future.";
       return;
     }
-    entry.time = end.toISOString();
-    entry.duration = duration;
-    entry.label = "Nap";
+    if (wakeTime) {
+      const end = new Date(wakeTime);
+      const duration = Math.round((end.getTime() - start.getTime()) / 60000);
+      if (Number.isNaN(end.getTime()) || duration <= 0) {
+        formError.textContent = "Wake-up time must be after the nap started.";
+        return;
+      }
+      if (end > new Date(Date.now() + 60000)) {
+        formError.textContent = "Wake-up time can't be in the future.";
+        return;
+      }
+      entry.time = end.toISOString();
+      entry.duration = duration;
+      entry.label = "Nap";
+    } else {
+      entry.time = start.toISOString();
+      entry.duration = 0;
+      entry.label = "Sleep started";
+    }
   } else if (type === "diaper") {
     entry.changeType = String(data.get("changeType"));
     entry.label = `${entry.changeType} diaper`;
@@ -794,17 +875,21 @@ logForm.addEventListener("submit", async (event) => {
   }
   saveButton.disabled = true;
   try {
-    const { data: savedRow, error } = await supabase
-      .from("care_logs")
-      .insert(toDatabaseLog(entry))
+    const query = supabase.from("care_logs");
+    const request = logIdToUpdate
+      ? query.update(toDatabaseLog(entry)).eq("id", logIdToUpdate).eq("baby_id", profile.id)
+      : query.insert(toDatabaseLog(entry));
+    const { data: savedRow, error } = await request
       .select("id, type, occurred_at, note, method, amount_ml, duration_minutes, change_type, care_label")
       .single();
     if (error) throw error;
-    logs.unshift(mapDatabaseLog(savedRow));
+    const savedLog = mapDatabaseLog(savedRow);
+    if (logIdToUpdate) logs = logs.map((log) => log.id === logIdToUpdate ? savedLog : log);
+    else logs.unshift(savedLog);
     logDialog.close();
     renderDashboard();
     setSyncError("");
-    showToast(`${entry.label} saved`);
+    showToast(`${entry.label} ${logIdToUpdate ? "updated" : "saved"}`);
   } catch (error) {
     formError.textContent = databaseError(error, "Saving log");
   } finally {
@@ -813,6 +898,12 @@ logForm.addEventListener("submit", async (event) => {
 });
 
 activityList.addEventListener("click", async (event) => {
+  const editButton = event.target.closest("[data-edit-log]");
+  if (editButton) {
+    const log = logs.find((item) => item.id === editButton.dataset.editLog);
+    if (log) openLogDialog(log.type === "custom" ? `custom:${log.careLabel}` : log.type, log);
+    return;
+  }
   const button = event.target.closest("[data-delete-log]");
   if (!button || !profile.id) return;
   button.disabled = true;
