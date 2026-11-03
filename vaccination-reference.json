@@ -1,0 +1,1035 @@
+{
+  "dataset_metadata": {
+    "dataset_id": "us_child_adolescent_immunization_master",
+    "title": "United States Childhood and Adolescent Immunization Master Data",
+    "age_coverage": {
+      "start": "birth",
+      "end": "18 years"
+    },
+    "country": "US",
+    "currency": "USD",
+    "language": "en-US",
+    "generated_on": "2026-11-03",
+    "status": "development_reference_not_clinical_decision_support",
+    "schedule_authority": "CDC",
+    "schedule_version": "CDC child and adolescent schedule by age, July 2 2025 (compliant version)",
+    "schedule_effective_date": "2025-07-02",
+    "schedule_version_note": "CDC currently identifies the July 2, 2025 schedule as the current posted CDC schedule pursuant to the March 16, 2026 preliminary court order. AAP publishes a separate 2026 schedule. Keep authority/version configurable and verify current official guidance before production use.",
+    "age_calculation": "Calculate age from date_of_birth using calendar months/years, not fixed 30-day months. Store recommended age windows separately from minimum age and minimum interval rules.",
+    "important_safety_note": "This is an app-development reference dataset, not medical advice or an individualized vaccination order. A licensed clinician must determine eligibility, product, dose validity, catch-up timing, contraindications and precautions.",
+    "sources": [
+      {
+        "authority": "CDC",
+        "title": "Child and Adolescent Immunization Schedule by Age (Compliant)",
+        "url": "https://www.cdc.gov/vaccines/hcp/imz-schedules/child-adolescent-age-compliant.html",
+        "version_date": "2025-07-02"
+      },
+      {
+        "authority": "CDC",
+        "title": "Vaccines and Other Immunizing Agents in the Child and Adolescent Immunization Schedule",
+        "url": "https://www.cdc.gov/vaccines/hcp/imz-schedules/child-schedule-vaccines.html",
+        "version_date": "2024-11-21"
+      },
+      {
+        "authority": "AAP",
+        "title": "Recommended Childhood and Adolescent Immunization Schedule: United States, 2026",
+        "url": "https://publications.aap.org/pediatrics/article/doi/10.1542/peds.2025-075754/206175/Recommended-Childhood-and-Adolescent-Immunization",
+        "version_date": "2026"
+      }
+    ]
+  },
+  "age_bands": [
+    {
+      "id": "birth",
+      "label": "Birth",
+      "start_month": 0,
+      "end_month": 0
+    },
+    {
+      "id": "1_month",
+      "label": "1 month",
+      "start_month": 1,
+      "end_month": 1
+    },
+    {
+      "id": "2_months",
+      "label": "2 months",
+      "start_month": 2,
+      "end_month": 2
+    },
+    {
+      "id": "4_months",
+      "label": "4 months",
+      "start_month": 4,
+      "end_month": 4
+    },
+    {
+      "id": "6_months",
+      "label": "6 months",
+      "start_month": 6,
+      "end_month": 6
+    },
+    {
+      "id": "9_months",
+      "label": "9 months",
+      "start_month": 9,
+      "end_month": 9
+    },
+    {
+      "id": "12_15_months",
+      "label": "12–15 months",
+      "start_month": 12,
+      "end_month": 15
+    },
+    {
+      "id": "15_18_months",
+      "label": "15–18 months",
+      "start_month": 15,
+      "end_month": 18
+    },
+    {
+      "id": "19_23_months",
+      "label": "19–23 months",
+      "start_month": 19,
+      "end_month": 23
+    },
+    {
+      "id": "2_3_years",
+      "label": "2–3 years",
+      "start_month": 24,
+      "end_month": 47
+    },
+    {
+      "id": "4_6_years",
+      "label": "4–6 years",
+      "start_month": 48,
+      "end_month": 83
+    },
+    {
+      "id": "7_10_years",
+      "label": "7–10 years",
+      "start_month": 84,
+      "end_month": 131
+    },
+    {
+      "id": "11_12_years",
+      "label": "11–12 years",
+      "start_month": 132,
+      "end_month": 155
+    },
+    {
+      "id": "13_15_years",
+      "label": "13–15 years",
+      "start_month": 156,
+      "end_month": 191
+    },
+    {
+      "id": "16_years",
+      "label": "16 years",
+      "start_month": 192,
+      "end_month": 203
+    },
+    {
+      "id": "17_18_years",
+      "label": "17–18 years",
+      "start_month": 204,
+      "end_month": 227
+    }
+  ],
+  "vaccines": [
+    {
+      "id": "HEPB",
+      "name": "Hepatitis B",
+      "abbreviation": "HepB",
+      "kind": "vaccine",
+      "protects_against": [
+        "hepatitis B"
+      ],
+      "routine_series": {
+        "dose_count": 3,
+        "doses": [
+          {
+            "dose": 1,
+            "age": "Birth (preferably within 24 hours)",
+            "age_months_min": 0,
+            "age_months_max": 0
+          },
+          {
+            "dose": 2,
+            "age": "1–2 months",
+            "age_months_min": 1,
+            "age_months_max": 2,
+            "min_interval_from_prior_days": 28
+          },
+          {
+            "dose": 3,
+            "age": "6–18 months",
+            "age_months_min": 6,
+            "age_months_max": 18,
+            "min_interval_from_prior_days": 112,
+            "final_dose_min_age_months": 6
+          }
+        ]
+      },
+      "conditional_rules": [
+        {
+          "id": "maternal_hbsag_positive_or_unknown",
+          "description": "Infant born to HBsAg-positive or unknown-status mother requires time-critical birth prophylaxis and possible HBIG; follow perinatal protocol and clinician instructions.",
+          "requires_clinician_review": true
+        }
+      ],
+      "products": [
+        "Engerix-B",
+        "Recombivax HB"
+      ],
+      "notes": "Dose timing and birth weight/maternal HBsAg status affect the regimen. Do not use this simplified routine series to calculate perinatal prophylaxis."
+    },
+    {
+      "id": "RV",
+      "name": "Rotavirus",
+      "abbreviation": "RV",
+      "kind": "vaccine",
+      "protects_against": [
+        "rotavirus gastroenteritis"
+      ],
+      "product_dependent_series": [
+        {
+          "product": "Rotarix",
+          "code": "RV1",
+          "dose_count": 2,
+          "doses": [
+            {
+              "dose": 1,
+              "age": "2 months",
+              "age_months_min": 2
+            },
+            {
+              "dose": 2,
+              "age": "4 months",
+              "age_months_min": 4,
+              "min_interval_from_prior_days": 28
+            }
+          ]
+        },
+        {
+          "product": "RotaTeq",
+          "code": "RV5",
+          "dose_count": 3,
+          "doses": [
+            {
+              "dose": 1,
+              "age": "2 months",
+              "age_months_min": 2
+            },
+            {
+              "dose": 2,
+              "age": "4 months",
+              "age_months_min": 4,
+              "min_interval_from_prior_days": 28
+            },
+            {
+              "dose": 3,
+              "age": "6 months",
+              "age_months_min": 6,
+              "min_interval_from_prior_days": 28
+            }
+          ]
+        }
+      ],
+      "age_limits": {
+        "minimum_age_first_dose_days": 42,
+        "maximum_age_first_dose_days": 104,
+        "maximum_age_any_dose_days": 244
+      },
+      "notes": "First dose must be started by 14 weeks 6 days; no dose after 8 months 0 days. Product and prior doses determine series."
+    },
+    {
+      "id": "DTAP",
+      "name": "Diphtheria, tetanus, and acellular pertussis",
+      "abbreviation": "DTaP",
+      "kind": "vaccine",
+      "protects_against": [
+        "diphtheria",
+        "tetanus",
+        "pertussis"
+      ],
+      "routine_series": {
+        "dose_count": 5,
+        "doses": [
+          {
+            "dose": 1,
+            "age": "2 months",
+            "age_months_min": 2
+          },
+          {
+            "dose": 2,
+            "age": "4 months",
+            "age_months_min": 4,
+            "min_interval_from_prior_days": 28
+          },
+          {
+            "dose": 3,
+            "age": "6 months",
+            "age_months_min": 6,
+            "min_interval_from_prior_days": 28
+          },
+          {
+            "dose": 4,
+            "age": "15–18 months",
+            "age_months_min": 15,
+            "age_months_max": 18,
+            "min_interval_from_prior_days": 180
+          },
+          {
+            "dose": 5,
+            "age": "4–6 years",
+            "age_months_min": 48,
+            "age_months_max": 83,
+            "min_interval_from_prior_days": 180
+          }
+        ]
+      },
+      "products": [
+        "Daptacel",
+        "Infanrix"
+      ],
+      "notes": "DTaP is for children younger than 7 years. Dose 4 may be given from 12 months if at least 6 months after dose 3; clinician/catch-up rules determine validity."
+    },
+    {
+      "id": "HIB",
+      "name": "Haemophilus influenzae type b",
+      "abbreviation": "Hib",
+      "kind": "vaccine",
+      "protects_against": [
+        "invasive Haemophilus influenzae type b disease"
+      ],
+      "product_dependent_series": [
+        {
+          "product_family": "PRP-T products (e.g. ActHIB, Hiberix)",
+          "dose_count": 4,
+          "doses": [
+            {
+              "dose": 1,
+              "age": "2 months",
+              "age_months_min": 2
+            },
+            {
+              "dose": 2,
+              "age": "4 months",
+              "age_months_min": 4,
+              "min_interval_from_prior_days": 28
+            },
+            {
+              "dose": 3,
+              "age": "6 months",
+              "age_months_min": 6,
+              "min_interval_from_prior_days": 28
+            },
+            {
+              "dose": 4,
+              "age": "12–15 months",
+              "age_months_min": 12,
+              "age_months_max": 15,
+              "min_interval_from_prior_days": 56
+            }
+          ]
+        },
+        {
+          "product_family": "PRP-OMP (PedvaxHIB)",
+          "dose_count": 3,
+          "doses": [
+            {
+              "dose": 1,
+              "age": "2 months",
+              "age_months_min": 2
+            },
+            {
+              "dose": 2,
+              "age": "4 months",
+              "age_months_min": 4,
+              "min_interval_from_prior_days": 56
+            },
+            {
+              "dose": 3,
+              "age": "12–15 months",
+              "age_months_min": 12,
+              "age_months_max": 15,
+              "min_interval_from_prior_days": 56
+            }
+          ]
+        }
+      ],
+      "products": [
+        "ActHIB",
+        "Hiberix",
+        "PedvaxHIB"
+      ],
+      "notes": "Primary-series dose count depends on product. Mixed/unknown product histories need official catch-up rules."
+    },
+    {
+      "id": "PCV",
+      "name": "Pneumococcal conjugate",
+      "abbreviation": "PCV15/PCV20",
+      "kind": "vaccine",
+      "protects_against": [
+        "pneumococcal disease"
+      ],
+      "routine_series": {
+        "dose_count": 4,
+        "doses": [
+          {
+            "dose": 1,
+            "age": "2 months",
+            "age_months_min": 2
+          },
+          {
+            "dose": 2,
+            "age": "4 months",
+            "age_months_min": 4,
+            "min_interval_from_prior_days": 28
+          },
+          {
+            "dose": 3,
+            "age": "6 months",
+            "age_months_min": 6,
+            "min_interval_from_prior_days": 28
+          },
+          {
+            "dose": 4,
+            "age": "12–15 months",
+            "age_months_min": 12,
+            "age_months_max": 15,
+            "min_interval_from_prior_days": 56
+          }
+        ]
+      },
+      "products": [
+        "Vaxneuvance (PCV15)",
+        "Prevnar 20 (PCV20)"
+      ],
+      "conditional_rules": [
+        {
+          "id": "risk_based_pneumococcal",
+          "description": "Additional pneumococcal vaccination may be indicated for certain medical conditions, immunocompromising conditions, cochlear implant or cerebrospinal fluid leak; product and prior PCV/PPSV23 history determine plan.",
+          "requires_clinician_review": true
+        }
+      ],
+      "notes": "Routine infant series and risk-based recommendations are distinct. Do not automatically add PPSV23 or extra PCV doses."
+    },
+    {
+      "id": "IPV",
+      "name": "Inactivated poliovirus",
+      "abbreviation": "IPV",
+      "kind": "vaccine",
+      "protects_against": [
+        "poliomyelitis"
+      ],
+      "routine_series": {
+        "dose_count": 4,
+        "doses": [
+          {
+            "dose": 1,
+            "age": "2 months",
+            "age_months_min": 2
+          },
+          {
+            "dose": 2,
+            "age": "4 months",
+            "age_months_min": 4,
+            "min_interval_from_prior_days": 28
+          },
+          {
+            "dose": 3,
+            "age": "6–18 months",
+            "age_months_min": 6,
+            "age_months_max": 18,
+            "min_interval_from_prior_days": 28
+          },
+          {
+            "dose": 4,
+            "age": "4–6 years",
+            "age_months_min": 48,
+            "age_months_max": 83,
+            "min_interval_from_prior_days": 180,
+            "final_dose_min_age_months": 48
+          }
+        ]
+      },
+      "products": [
+        "Ipol"
+      ],
+      "notes": "A fourth dose is not needed if the third dose was given at age 4 years or older and at least 6 months after the previous dose, subject to official rules."
+    },
+    {
+      "id": "INFLUENZA",
+      "name": "Influenza",
+      "abbreviation": "IIV3/ccIIV3/LAIV3",
+      "kind": "vaccine",
+      "protects_against": [
+        "seasonal influenza"
+      ],
+      "routine_series": {
+        "frequency": "annual",
+        "start_age_months": 6,
+        "doses_per_season": "1 or 2 depending on age and prior influenza vaccination history",
+        "rules": [
+          {
+            "if": "age 6 months through 8 years and has not previously received at least 2 total influenza vaccine doses before July 1 of the current season",
+            "doses_this_season": 2,
+            "minimum_interval_days": 28
+          },
+          {
+            "if": "age 6 months through 8 years and previously received at least 2 qualifying doses",
+            "doses_this_season": 1
+          },
+          {
+            "if": "age 9 years or older",
+            "doses_this_season": 1
+          }
+        ]
+      },
+      "products": [
+        "Inactivated influenza vaccine (IIV)",
+        "Cell-culture inactivated influenza vaccine (ccIIV)",
+        "Live attenuated influenza vaccine (LAIV; age/health restrictions apply)"
+      ],
+      "notes": "Record influenza season/year and formulation. Annual product guidance changes; verify age indication and contraindications each season."
+    },
+    {
+      "id": "COVID19",
+      "name": "COVID-19",
+      "abbreviation": "COVID-19",
+      "kind": "vaccine",
+      "protects_against": [
+        "COVID-19"
+      ],
+      "schedule_type": "shared_clinical_decision_making_and_current_season_guidance",
+      "routine_series": {
+        "start_age_months": 6,
+        "doses": "Product-, age-, vaccination-history- and season-dependent; retrieve current-season schedule at administration time."
+      },
+      "products": [
+        "Current-season mRNA products",
+        "Current-season protein-based product when age-eligible"
+      ],
+      "notes": "Do not hardcode a permanent dose count. Keep season, product, age eligibility, prior doses and current official guidance in a versioned rule set."
+    },
+    {
+      "id": "MMR",
+      "name": "Measles, mumps, and rubella",
+      "abbreviation": "MMR",
+      "kind": "vaccine",
+      "protects_against": [
+        "measles",
+        "mumps",
+        "rubella"
+      ],
+      "routine_series": {
+        "dose_count": 2,
+        "doses": [
+          {
+            "dose": 1,
+            "age": "12–15 months",
+            "age_months_min": 12,
+            "age_months_max": 15
+          },
+          {
+            "dose": 2,
+            "age": "4–6 years",
+            "age_months_min": 48,
+            "age_months_max": 83,
+            "min_interval_from_prior_days": 28
+          }
+        ]
+      },
+      "conditional_rules": [
+        {
+          "id": "early_travel_or_outbreak_dose",
+          "description": "An early dose may be recommended for infants 6–11 months for international travel or outbreak circumstances; it does not replace the routine 2-dose series.",
+          "requires_clinician_review": true
+        }
+      ],
+      "products": [
+        "M-M-R II",
+        "Priorix"
+      ],
+      "notes": "Live vaccine; screen for contraindications and special circumstances."
+    },
+    {
+      "id": "VAR",
+      "name": "Varicella",
+      "abbreviation": "VAR",
+      "kind": "vaccine",
+      "protects_against": [
+        "chickenpox"
+      ],
+      "routine_series": {
+        "dose_count": 2,
+        "doses": [
+          {
+            "dose": 1,
+            "age": "12–15 months",
+            "age_months_min": 12,
+            "age_months_max": 15
+          },
+          {
+            "dose": 2,
+            "age": "4–6 years",
+            "age_months_min": 48,
+            "age_months_max": 83,
+            "min_interval_from_prior_days": 90
+          }
+        ]
+      },
+      "products": [
+        "Varivax"
+      ],
+      "notes": "For children younger than 13 years, routine interval is 3 months; a dose given at least 4 weeks after dose 1 may be accepted as valid under applicable guidance."
+    },
+    {
+      "id": "HEPA",
+      "name": "Hepatitis A",
+      "abbreviation": "HepA",
+      "kind": "vaccine",
+      "protects_against": [
+        "hepatitis A"
+      ],
+      "routine_series": {
+        "dose_count": 2,
+        "doses": [
+          {
+            "dose": 1,
+            "age": "12–23 months",
+            "age_months_min": 12,
+            "age_months_max": 23
+          },
+          {
+            "dose": 2,
+            "age": "At least 6 months after dose 1",
+            "min_interval_from_prior_days": 180
+          }
+        ]
+      },
+      "conditional_rules": [
+        {
+          "id": "travel_or_risk",
+          "description": "Additional age-appropriate vaccination may be recommended for travel or specific risk groups; clinician review required.",
+          "requires_clinician_review": true
+        }
+      ],
+      "products": [
+        "Havrix",
+        "Vaqta"
+      ]
+    },
+    {
+      "id": "TDAP",
+      "name": "Tetanus, diphtheria, and acellular pertussis",
+      "abbreviation": "Tdap",
+      "kind": "vaccine",
+      "protects_against": [
+        "tetanus",
+        "diphtheria",
+        "pertussis"
+      ],
+      "routine_series": {
+        "dose_count": 1,
+        "doses": [
+          {
+            "dose": 1,
+            "age": "11–12 years",
+            "age_months_min": 132,
+            "age_months_max": 155
+          }
+        ]
+      },
+      "conditional_rules": [
+        {
+          "id": "catch_up_or_wound_management",
+          "description": "Children age 7 years or older who are not fully vaccinated with DTaP need an age-appropriate catch-up series; wound management may require additional doses.",
+          "requires_clinician_review": true
+        }
+      ],
+      "products": [
+        "Adacel",
+        "Boostrix"
+      ],
+      "notes": "Tdap is also used during each pregnancy, but maternal vaccination is outside this child record schedule."
+    },
+    {
+      "id": "HPV",
+      "name": "Human papillomavirus",
+      "abbreviation": "HPV",
+      "kind": "vaccine",
+      "protects_against": [
+        "HPV-related cancers and disease"
+      ],
+      "routine_series": {
+        "routine_start_age_years": 11,
+        "recommended_age_years": "11–12",
+        "dose_rules": [
+          {
+            "if": "series started before 15th birthday and not immunocompromised",
+            "dose_count": 2,
+            "minimum_interval_months": 5
+          },
+          {
+            "if": "series started at age 15 years or older OR immunocompromised",
+            "dose_count": 3,
+            "intervals": "0, 1–2, and 6 months; apply official minimum intervals"
+          }
+        ]
+      },
+      "products": [
+        "Gardasil 9"
+      ],
+      "notes": "May begin at age 9. Use age at first dose and immunocompromised status to select 2- versus 3-dose series."
+    },
+    {
+      "id": "MENACWY",
+      "name": "Meningococcal ACWY",
+      "abbreviation": "MenACWY",
+      "kind": "vaccine",
+      "protects_against": [
+        "meningococcal serogroups A",
+        "C",
+        "W",
+        "Y"
+      ],
+      "routine_series": {
+        "dose_count": 2,
+        "doses": [
+          {
+            "dose": 1,
+            "age": "11–12 years",
+            "age_months_min": 132,
+            "age_months_max": 155
+          },
+          {
+            "dose": 2,
+            "age": "16 years",
+            "age_months_min": 192,
+            "age_months_max": 203,
+            "min_interval_from_prior_days": 1460
+          }
+        ]
+      },
+      "conditional_rules": [
+        {
+          "id": "high_risk_or_early_start",
+          "description": "Certain high-risk children may need MenACWY beginning at 2 months, with product-specific multi-dose schedules and boosters.",
+          "requires_clinician_review": true
+        }
+      ],
+      "products": [
+        "Menveo (MenACWY-CRM)",
+        "MenQuadfi (MenACWY-TT)"
+      ]
+    },
+    {
+      "id": "MENB",
+      "name": "Meningococcal B",
+      "abbreviation": "MenB",
+      "kind": "vaccine",
+      "protects_against": [
+        "meningococcal serogroup B"
+      ],
+      "schedule_type": "shared_clinical_decision_making_or_high_risk",
+      "routine_series": {
+        "preferred_age": "16–18 years",
+        "dose_count": "Product- and indication-dependent; commonly 2-dose series for healthy adolescents under shared clinical decision-making; high-risk schedules may differ."
+      },
+      "products": [
+        "Bexsero (MenB-4C)",
+        "Trumenba (MenB-FHbp)"
+      ],
+      "conditional_rules": [
+        {
+          "id": "high_risk",
+          "description": "Certain medical conditions, complement inhibitor use, asplenia, outbreak or exposure may warrant MenB at younger ages or a different series.",
+          "requires_clinician_review": true
+        }
+      ],
+      "notes": "Do not interchange products within a series unless current official guidance explicitly permits."
+    },
+    {
+      "id": "RSV_MAB",
+      "name": "RSV monoclonal antibody protection",
+      "abbreviation": "RSV-mAb",
+      "kind": "monoclonal_antibody_not_vaccine",
+      "protects_against": [
+        "respiratory syncytial virus lower respiratory tract disease"
+      ],
+      "routine_series": {
+        "first_rsv_season": "One dose for eligible infants, depending on maternal RSV vaccination status and timing; generally given shortly before or during first RSV season.",
+        "second_rsv_season": "One dose for certain high-risk children 8 through 19 months entering their second RSV season."
+      },
+      "products": [
+        "Nirsevimab (Beyfortus)",
+        "Clesrovimab (Enflonsia; verify current age/season guidance)"
+      ],
+      "conditional_rules": [
+        {
+          "id": "maternal_rsv_vaccine",
+          "description": "Most infants do not need infant RSV antibody if maternal RSV vaccine was given at least 14 days before delivery; exceptions and clinical factors apply.",
+          "requires_clinician_review": true
+        },
+        {
+          "id": "second_season_high_risk",
+          "description": "Second-season protection is limited to defined high-risk groups.",
+          "requires_clinician_review": true
+        }
+      ],
+      "notes": "Store separately from vaccines because this is a monoclonal antibody. Seasonal eligibility and product guidance must be refreshed."
+    },
+    {
+      "id": "DENGUE",
+      "name": "Dengue",
+      "abbreviation": "DEN4CYD",
+      "kind": "vaccine",
+      "protects_against": [
+        "dengue"
+      ],
+      "schedule_type": "restricted_geography_and_prior_infection_requirement",
+      "routine_series": {
+        "eligible_age_years": "9–16",
+        "dose_count": 3,
+        "dose_ages_months_from_first": [
+          0,
+          6,
+          12
+        ]
+      },
+      "conditional_rules": [
+        {
+          "id": "endemic_area_and_seropositive",
+          "description": "Only for children living in dengue-endemic areas with laboratory-confirmed previous dengue infection, per applicable authorization and guidance.",
+          "requires_clinician_review": true
+        }
+      ],
+      "products": [
+        "Dengvaxia"
+      ],
+      "notes": "Not a routine vaccine for all US children; geographic eligibility and documented prior infection are essential."
+    },
+    {
+      "id": "MPOX",
+      "name": "Mpox",
+      "abbreviation": "Mpox",
+      "kind": "vaccine",
+      "protects_against": [
+        "mpox"
+      ],
+      "schedule_type": "risk_or_exposure_based",
+      "routine_series": {
+        "dose_count": 2,
+        "interval_days": 28,
+        "age": "Use only when currently authorized/recommended for the child's age and circumstance; routine CDC child schedule lists risk-based guidance."
+      },
+      "conditional_rules": [
+        {
+          "id": "exposure_or_risk",
+          "description": "Consider only for eligible exposure/risk circumstances under current public-health guidance; pediatric use may require specific authorization or specialist/public-health direction.",
+          "requires_clinician_review": true
+        }
+      ],
+      "products": [
+        "Jynneos"
+      ],
+      "notes": "Do not assign universally to all 18-year-olds; verify current age authorization and public-health guidance."
+    },
+    {
+      "id": "PPSV23",
+      "name": "Pneumococcal polysaccharide",
+      "abbreviation": "PPSV23",
+      "kind": "vaccine",
+      "protects_against": [
+        "pneumococcal disease"
+      ],
+      "schedule_type": "risk_based_only",
+      "products": [
+        "Pneumovax 23"
+      ],
+      "conditional_rules": [
+        {
+          "id": "medical_risk",
+          "description": "May be indicated for certain children with qualifying medical conditions or risk factors; sequence depends on prior PCV products and current recommendations.",
+          "requires_clinician_review": true
+        }
+      ],
+      "notes": "Not part of the routine healthy-infant series."
+    }
+  ],
+  "combination_vaccines": [
+    {
+      "id": "COMBO_PEDIARIX",
+      "product": "Pediarix",
+      "abbreviation": "DTaP-HepB-IPV",
+      "components": [
+        "DTAP",
+        "HEPB",
+        "IPV"
+      ],
+      "typical_use": "Primary infant doses; product-specific age and series rules apply.",
+      "notes": "Do not create three separate injection records. Create one administration event linked to three component dose credits."
+    },
+    {
+      "id": "COMBO_PENTACEL",
+      "product": "Pentacel",
+      "abbreviation": "DTaP-IPV/Hib",
+      "components": [
+        "DTAP",
+        "IPV",
+        "HIB"
+      ],
+      "typical_use": "Infant primary series; product-specific age and series rules apply.",
+      "notes": "One administration event can satisfy component doses when each component dose is valid."
+    },
+    {
+      "id": "COMBO_KINRIX",
+      "product": "Kinrix",
+      "abbreviation": "DTaP-IPV",
+      "components": [
+        "DTAP",
+        "IPV"
+      ],
+      "typical_use": "Booster dose in the 4–6-year age range when indicated.",
+      "notes": "Check age, prior doses and product-specific licensing."
+    },
+    {
+      "id": "COMBO_QUADRACEL",
+      "product": "Quadracel",
+      "abbreviation": "DTaP-IPV",
+      "components": [
+        "DTAP",
+        "IPV"
+      ],
+      "typical_use": "Booster dose in the 4–6-year age range when indicated.",
+      "notes": "Check age, prior doses and product-specific licensing."
+    },
+    {
+      "id": "COMBO_VAXELIS",
+      "product": "Vaxelis",
+      "abbreviation": "DTaP-IPV-Hib-HepB",
+      "components": [
+        "DTAP",
+        "IPV",
+        "HIB",
+        "HEPB"
+      ],
+      "typical_use": "Infant primary series; not used for every booster dose.",
+      "notes": "Product-specific rules apply, including Hib/HepB dose credit."
+    },
+    {
+      "id": "COMBO_PROQUAD",
+      "product": "ProQuad",
+      "abbreviation": "MMRV",
+      "components": [
+        "MMR",
+        "VAR"
+      ],
+      "typical_use": "May be used for eligible second-year or preschool doses.",
+      "notes": "Discuss febrile seizure considerations for first dose in young children; clinician selects product."
+    },
+    {
+      "id": "COMBO_PENBRAYA",
+      "product": "Penbraya",
+      "abbreviation": "MenACWY-TT/MenB-FHbp",
+      "components": [
+        "MENACWY",
+        "MENB"
+      ],
+      "typical_use": "Certain adolescents/young adults when both components are indicated.",
+      "notes": "Use only according to current age indication and product-specific guidance; component series remain separately tracked."
+    }
+  ],
+  "schedule_rules": {
+    "routine_due_date_calculation": "Add calendar months/years to date_of_birth for age-based recommendations. A due window is a range, not a single exact date. Store earliest_valid_date, recommended_start_date, recommended_end_date and latest_routine_date separately.",
+    "dose_validity": "A dose administered too early may not count. Validate minimum age and minimum interval using the current official schedule and applicable grace-period rules before marking a series complete.",
+    "catch_up": "Do not restart a vaccine series because of an extended interval. Use the current CDC catch-up table and product-specific notes. This dataset intentionally does not encode every catch-up branch.",
+    "unknown_history": "Mark history as unknown/unverified and route to clinician review; do not assume zero doses or mark a series complete.",
+    "prematurity": "Most vaccines are scheduled by chronological age; HepB birth-dose rules and selected clinical circumstances require special handling.",
+    "combination_products": "Record one physical administration event with multiple vaccine_component_credits. Validate each credited component independently.",
+    "annual_vaccines": "Generate a new influenza season record each year; do not model annual influenza as one lifelong dose series.",
+    "conditional_rules": "Do not automatically schedule risk-based, travel-related, outbreak-related, shared-decision or maternal-status-dependent immunizations without the required eligibility data and clinician approval."
+  },
+  "tracking_record_schema": {
+    "record_id": "UUID",
+    "child_id": "UUID",
+    "schedule_id": "string",
+    "vaccine_id": "string",
+    "dose_number": "integer_or_null",
+    "schedule_version_id": "string",
+    "recommended_window_start": "date_or_null",
+    "recommended_window_end": "date_or_null",
+    "calculated_due_date": "date_or_null",
+    "earliest_valid_date": "date_or_null",
+    "administered": "boolean",
+    "administered_date": "date_or_null",
+    "status": "upcoming|due|overdue|completed|deferred|not_indicated|contraindicated|unknown_history",
+    "administration_event_id": "UUID_or_null",
+    "product_name": "string_or_null",
+    "manufacturer": "string_or_null",
+    "lot_number": "string_or_null",
+    "expiration_date": "date_or_null",
+    "dose_volume": "string_or_null",
+    "route": "string_or_null",
+    "site": "string_or_null",
+    "administering_clinician": "string_or_null",
+    "facility_name": "string_or_null",
+    "facility_address": "string_or_null",
+    "vis_document_url": "string_or_null",
+    "certificate_file_id": "string_or_null",
+    "reaction_or_adverse_event": "string_or_null",
+    "notes": "string_or_null",
+    "source_of_record": "parent_entry|provider_import|registry_import|manual_migration",
+    "verified_by_provider": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  },
+  "administration_event_schema": {
+    "administration_event_id": "UUID",
+    "child_id": "UUID",
+    "administered_date": "date",
+    "product_name": "string",
+    "manufacturer": "string_or_null",
+    "lot_number": "string_or_null",
+    "expiration_date": "date_or_null",
+    "dose_volume": "string_or_null",
+    "route": "string_or_null",
+    "site": "string_or_null",
+    "facility_name": "string_or_null",
+    "administering_clinician": "string_or_null",
+    "component_credits": [
+      {
+        "vaccine_id": "DTAP",
+        "dose_number": 1
+      },
+      {
+        "vaccine_id": "IPV",
+        "dose_number": 1
+      }
+    ],
+    "notes": "string_or_null"
+  },
+  "status_definitions": {
+    "upcoming": "Outside the due window and not yet administered.",
+    "due": "Within the recommended due window and not yet administered.",
+    "overdue": "Past the recommended window and not yet administered; this is a reminder state, not a clinical validity decision.",
+    "completed": "Administration recorded and dose validity confirmed.",
+    "deferred": "Temporarily postponed; store reason and clinician follow-up.",
+    "not_indicated": "Clinician determined this dose is not indicated for this child.",
+    "contraindicated": "Clinician documented a contraindication.",
+    "unknown_history": "Prior vaccination status cannot be confirmed."
+  },
+  "conditional_immunization_categories": [
+    "maternal_vaccination_status",
+    "prematurity_or_birth_weight",
+    "medical_condition_or_immunocompromise",
+    "travel",
+    "outbreak_or_exposure",
+    "geographic_endemicity",
+    "shared_clinical_decision_making",
+    "prior_infection_or_serology"
+  ]
+}

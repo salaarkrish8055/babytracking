@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import vaccinationReference from "./vaccination-reference.json";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -17,6 +18,7 @@ const labels = { feed: "Feeding", sleep: "Sleep", diaper: "Diaper change", care:
 const maxCustomLogTypes = 12;
 const logDialog = document.querySelector("#log-dialog");
 const overallLogDialog = document.querySelector("#overall-log-dialog");
+const healthRecordDialog = document.querySelector("#health-record-dialog");
 const profileDialog = document.querySelector("#profile-dialog");
 const passwordDialog = document.querySelector("#password-dialog");
 const logForm = document.querySelector("#log-form");
@@ -27,6 +29,7 @@ const quickActions = document.querySelector("#quick-actions");
 const toast = document.querySelector("#toast");
 
 let logs = [];
+let healthRecords = [];
 let profile = { id: null, name: "Krish", birthday: "", customLogTypes: [], quickLogOrder: [] };
 let draftCustomLogTypes = [];
 let draftQuickLogOrder = [];
@@ -49,6 +52,10 @@ let activityActionError = "";
 let activityActionInProgress = false;
 let overallSelectedTypes = new Set();
 let overallFieldIdCounter = 0;
+let editingHealthRecordId = null;
+let pendingDeleteHealthRecordId = null;
+let healthRecordActionError = "";
+let healthRecordActionInProgress = false;
 
 function localDateKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -271,6 +278,111 @@ function renderActivityItem(log) {
     ${confirmationMarkup}
     ${isPendingDelete && activityActionError ? `<span class="activity-action-error" role="alert">${escapeHTML(activityActionError)}</span>` : ""}
   </article>`;
+}
+
+function healthRecordFormFields(type) {
+  const date = localDateKey(new Date());
+  if (type === "vaccination") {
+    return `<div class="form-field"><label for="health-title">Vaccine name</label><input id="health-title" name="title" list="vaccine-name-options" maxlength="120" placeholder="e.g. DTaP" required />${vaccineNameOptionsMarkup()}</div>
+      <div class="form-row"><div class="form-field"><label for="health-occurred-on">Date given</label><input id="health-occurred-on" name="occurredOn" type="date" value="${date}" required /></div><div class="form-field"><label for="health-dose">Dose <span class="optional">(optional)</span></label><input id="health-dose" name="dose" maxlength="40" placeholder="e.g. 2 of 4" /></div></div>
+      <div class="form-row"><div class="form-field"><label for="health-provider">Given by <span class="optional">(optional)</span></label><input id="health-provider" name="providerName" maxlength="120" placeholder="Clinician's name" /></div><div class="form-field"><label for="health-facility">Clinic or hospital <span class="optional">(optional)</span></label><input id="health-facility" name="facilityName" maxlength="160" placeholder="Where it was given" /></div></div>
+      <div class="form-row"><div class="form-field"><label for="health-manufacturer">Manufacturer <span class="optional">(optional)</span></label><input id="health-manufacturer" name="manufacturer" maxlength="120" /></div><div class="form-field"><label for="health-lot-number">Lot / batch number <span class="optional">(optional)</span></label><input id="health-lot-number" name="lotNumber" maxlength="80" /></div></div>
+      <div class="form-row"><div class="form-field"><label for="health-next-due-date">Next dose due <span class="optional">(optional)</span></label><input id="health-next-due-date" name="nextDueDate" type="date" /><small class="health-field-hint">Use the date recommended by your healthcare provider.</small></div><div class="form-field"><label for="health-next-due-time">Time <span class="optional">(optional)</span></label><input id="health-next-due-time" name="nextDueTime" type="time" /></div></div>
+      <div class="form-field"><label for="health-notes">Notes <span class="optional">(optional)</span></label><textarea id="health-notes" name="notes" rows="3" maxlength="2000" placeholder="Reaction, guidance, or anything to remember"></textarea></div>`;
+  }
+  return `<div class="form-row"><div class="form-field"><label for="health-category">Visit type</label><select id="health-category" name="category"><option>Pediatrician</option><option>Specialist</option><option>Lab / test</option><option>Hospital / urgent care</option><option>Other</option></select></div><div class="form-field"><label for="health-occurred-on">Visit / appointment date</label><input id="health-occurred-on" name="occurredOn" type="date" value="${date}" required /></div></div>
+    <div class="form-field"><label for="health-occurred-time">Appointment time <span class="optional">(optional)</span></label><input id="health-occurred-time" name="occurredTime" type="time" /><small class="health-field-hint">Choose a future date and time to list this under Upcoming care.</small></div>
+    <div class="form-field"><label for="health-title">Visit or appointment</label><input id="health-title" name="title" maxlength="120" placeholder="e.g. First pediatrician visit" required /></div>
+    <div class="form-row"><div class="form-field"><label for="health-provider">Provider <span class="optional">(optional)</span></label><input id="health-provider" name="providerName" maxlength="120" placeholder="Doctor or clinician" /></div><div class="form-field"><label for="health-facility">Facility <span class="optional">(optional)</span></label><input id="health-facility" name="facilityName" maxlength="160" placeholder="Clinic, lab, or hospital" /></div></div>
+    <div class="form-field"><label for="health-reason">Reason for visit <span class="optional">(optional)</span></label><textarea id="health-reason" name="reason" rows="2" maxlength="500" placeholder="Symptoms, routine checkup, or test requested"></textarea></div>
+    <div class="form-field"><label for="health-results">Assessment or test results <span class="optional">(optional)</span></label><textarea id="health-results" name="results" rows="3" maxlength="2000" placeholder="Findings, diagnosis, or treatment plan"></textarea></div>
+    <div class="form-row"><div class="form-field"><label for="health-follow-up-date">Follow-up date <span class="optional">(optional)</span></label><input id="health-follow-up-date" name="followUpDate" type="date" /></div><div class="form-field"><label for="health-follow-up-time">Time <span class="optional">(optional)</span></label><input id="health-follow-up-time" name="followUpTime" type="time" /></div></div>
+    <div class="form-field"><label for="health-notes">Notes or instructions <span class="optional">(optional)</span></label><textarea id="health-notes" name="notes" rows="3" maxlength="2000" placeholder="Medication instructions or questions for next time"></textarea></div>`;
+}
+
+function renderHealthRecordList() {
+  const list = document.querySelector("#health-record-list");
+  const filter = document.querySelector("#health-filter").value;
+  const records = healthRecords
+    .filter((record) => filter === "all" || record.recordType === filter)
+    .sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
+  const today = localDateKey(new Date());
+  const scheduledItems = healthRecords.flatMap((record) => {
+    const items = [];
+    if (record.recordType === "visit" && record.occurredOn >= today) {
+      items.push({
+        title: record.title,
+        category: record.category || "Doctor visit",
+        date: record.occurredOn,
+        time: record.occurredTime,
+      });
+    }
+    const dueDate = record.recordType === "vaccination" ? record.nextDueDate : record.followUpDate;
+    if (dueDate) {
+      items.push({
+        title: record.title,
+        category: record.recordType === "vaccination" ? "Vaccination" : "Follow-up",
+        date: dueDate,
+        time: record.recordType === "vaccination" ? record.nextDueTime : record.followUpTime,
+      });
+    }
+    return items;
+  }).sort((a, b) => a.date.localeCompare(b.date) || (a.time || "99:99").localeCompare(b.time || "99:99"));
+  const overdueItems = scheduledItems.filter((item) => item.date < today);
+  const upcomingItems = scheduledItems.filter((item) => item.date >= today);
+  const renderScheduledItems = (items) => items.slice(0, 3).map((item) => {
+    const eventDate = new Date(`${item.date}T00:00:00`);
+    const dayLabel = formatDate(eventDate, { day: "numeric" });
+    const monthLabel = formatDate(eventDate, { month: "short" });
+    const yearLabel = formatDate(eventDate, { year: "numeric" });
+    const weekday = formatDate(eventDate, { weekday: "long" });
+    const timeLabel = item.time
+      ? new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(`2000-01-01T${item.time}`))
+      : "Time not set";
+    return `<li class="health-scheduled-item">
+      <time class="health-scheduled-date" datetime="${escapeHTML(item.date)}"><strong>${escapeHTML(dayLabel)}</strong><span>${escapeHTML(monthLabel)}</span></time>
+      <div class="health-scheduled-copy"><span class="health-scheduled-category">${escapeHTML(item.category)}</span><strong>${escapeHTML(item.title)}</strong><span class="health-scheduled-time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg>${escapeHTML(weekday)} · ${escapeHTML(timeLabel)}</span></div>
+      <span class="health-scheduled-year">${escapeHTML(yearLabel)}</span>
+    </li>`;
+  }).join("");
+  const overview = document.querySelector("#health-overview");
+  overview.innerHTML = `${upcomingItems.length
+    ? `<section class="health-schedule-group"><div class="health-schedule-heading"><strong>Upcoming care</strong><button class="text-button health-schedule-add" type="button" data-schedule-appointment>+ Appointment</button></div><ul class="health-scheduled-list">${renderScheduledItems(upcomingItems)}</ul>${upcomingItems.length > 3 ? `<span class="health-schedule-more">${upcomingItems.length - 3} more upcoming ${upcomingItems.length - 3 === 1 ? "item" : "items"}</span>` : ""}</section>`
+    : `<section class="health-schedule-group"><div class="health-schedule-heading"><strong>Upcoming care</strong><button class="text-button health-schedule-add" type="button" data-schedule-appointment>+ Appointment</button></div><span class="health-schedule-empty">No appointments yet. Add one to keep the date and time handy.</span></section>`}
+    ${overdueItems.length ? `<section class="health-schedule-group health-overview-overdue"><strong>${overdueItems.length} past-due ${overdueItems.length === 1 ? "item" : "items"} to review</strong><ul class="health-scheduled-list">${renderScheduledItems(overdueItems)}</ul></section>` : ""}`;
+
+  if (!records.length) {
+    list.innerHTML = `<div class="health-empty"><span class="health-empty-icon" aria-hidden="true">+</span><strong>${healthRecords.length ? "No records in this view" : "Your baby's health history starts here"}</strong><p>${healthRecords.length ? "Choose another filter to see more records." : "Save vaccine details, checkups, test results, and follow-up dates in one private place."}</p><button class="button button-secondary" type="button" data-add-health-record>Add a health record</button></div>`;
+    return;
+  }
+  list.innerHTML = records.map((record) => {
+    const isPendingDelete = pendingDeleteHealthRecordId === record.id;
+    const details = record.recordType === "vaccination"
+      ? [record.dose && `Dose ${record.dose}`, record.providerName, record.facilityName, record.manufacturer && `By ${record.manufacturer}`, record.lotNumber && `Lot ${record.lotNumber}`].filter(Boolean)
+      : [record.category, record.providerName, record.facilityName, record.reason && `Reason: ${record.reason}`, record.results && `Results: ${record.results}`].filter(Boolean);
+    const followUpDate = record.recordType === "vaccination" ? record.nextDueDate : record.followUpDate;
+    const followUpLabel = record.recordType === "vaccination" ? "Next dose" : "Follow-up";
+    const scheduledBadge = record.occurredOn > today
+      ? '<span class="health-due-badge">Scheduled</span>'
+      : "";
+    const dueBadge = followUpDate
+      ? `<span class="health-due-badge${followUpDate < today ? " overdue" : ""}">${followUpDate < today ? `${followUpLabel} was due` : `${followUpLabel} ${formatDate(new Date(`${followUpDate}T00:00:00`), { month: "short", day: "numeric", year: "numeric" })}`}</span>`
+      : "";
+    return `<article class="health-record-card">
+      <div class="health-record-icon ${record.recordType}" aria-hidden="true">${record.recordType === "vaccination" ? "＋" : "♡"}</div>
+      <div class="health-record-content">
+        <div class="health-record-title-row"><span class="health-record-type">${record.recordType === "vaccination" ? "VACCINATION" : escapeHTML(record.category || "DOCTOR VISIT")}</span><time datetime="${escapeHTML(record.occurredOn)}">${formatDate(new Date(`${record.occurredOn}T00:00:00`), { month: "short", day: "numeric", year: "numeric" })}</time></div>
+        <h3>${escapeHTML(record.title)}</h3>
+        ${details.length ? `<p class="health-record-details">${details.map(escapeHTML).join(" · ")}</p>` : ""}
+        ${record.notes ? `<p class="health-record-notes">${escapeHTML(record.notes)}</p>` : ""}
+        ${scheduledBadge}${dueBadge ? ` ${dueBadge}` : ""}
+        ${isPendingDelete
+          ? `<div class="health-delete-confirmation" role="group" aria-label="Confirm deleting ${escapeHTML(record.title)}"><span>Delete this record?</span><button class="button button-secondary" type="button" data-cancel-health-delete>No</button><button class="button button-danger" type="button" data-confirm-health-delete="${escapeHTML(record.id)}"${healthRecordActionInProgress ? " disabled" : ""}>Yes, delete</button></div>`
+          : `<div class="health-record-actions"><button class="text-button" type="button" data-edit-health-record="${escapeHTML(record.id)}">Edit</button><button class="text-button" type="button" data-delete-health-record="${escapeHTML(record.id)}">Delete</button></div>`}
+        ${isPendingDelete && healthRecordActionError ? `<p class="health-action-error" role="alert">${escapeHTML(healthRecordActionError)}</p>` : ""}
+      </div>
+    </article>`;
+  }).join("");
 }
 
 function updateActivityControls() {
@@ -723,6 +835,52 @@ function toDatabaseLog(log) {
   };
 }
 
+function mapDatabaseHealthRecord(row) {
+  return {
+    id: row.id,
+    recordType: row.record_type,
+    title: row.title,
+    occurredOn: row.occurred_on,
+    occurredTime: row.occurred_time ? row.occurred_time.slice(0, 5) : "",
+    category: row.category || "",
+    providerName: row.provider_name || "",
+    facilityName: row.facility_name || "",
+    manufacturer: row.manufacturer || "",
+    dose: row.dose || "",
+    lotNumber: row.lot_number || "",
+    nextDueDate: row.next_due_date || "",
+    nextDueTime: row.next_due_time ? row.next_due_time.slice(0, 5) : "",
+    reason: row.reason || "",
+    results: row.results || "",
+    followUpDate: row.follow_up_date || "",
+    followUpTime: row.follow_up_time ? row.follow_up_time.slice(0, 5) : "",
+    notes: row.notes || "",
+  };
+}
+
+function toDatabaseHealthRecord(record) {
+  return {
+    baby_id: profile.id,
+    record_type: record.recordType,
+    title: record.title,
+    occurred_on: record.occurredOn,
+    occurred_time: record.occurredTime || null,
+    category: record.category || null,
+    provider_name: record.providerName || null,
+    facility_name: record.facilityName || null,
+    manufacturer: record.manufacturer || null,
+    dose: record.dose || null,
+    lot_number: record.lotNumber || null,
+    next_due_date: record.nextDueDate || null,
+    next_due_time: record.nextDueTime || null,
+    reason: record.reason || null,
+    results: record.results || null,
+    follow_up_date: record.followUpDate || null,
+    follow_up_time: record.followUpTime || null,
+    notes: record.notes || null,
+  };
+}
+
 async function loadBabyProfile(userId) {
   const { data: existingProfile, error: selectError } = await supabase
     .from("baby_profiles")
@@ -759,11 +917,34 @@ async function loadLogs() {
   renderDashboard();
 }
 
+async function loadHealthRecords() {
+  const allRows = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase
+      .from("health_records")
+      .select("id, record_type, title, occurred_on, occurred_time, category, provider_name, facility_name, manufacturer, dose, lot_number, next_due_date, next_due_time, reason, results, follow_up_date, follow_up_time, notes")
+      .eq("baby_id", profile.id)
+      .is("deleted_at", null)
+      .order("occurred_on", { ascending: false })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw new Error(databaseError(error, "Loading health records"));
+    allRows.push(...data);
+    if (data.length < pageSize) break;
+  }
+  healthRecords = allRows.map(mapDatabaseHealthRecord);
+  renderHealthRecordList();
+}
+
 async function initializeAccount(user) {
   if (currentUserId === user.id && (profile.id || loadingUserId === user.id)) return;
   currentUserId = user.id;
   loadingUserId = user.id;
   logs = [];
+  healthRecords = [];
+  pendingDeleteHealthRecordId = null;
+  healthRecordActionError = "";
+  healthRecordActionInProgress = false;
   activityActionMode = null;
   pendingDeleteLogId = null;
   confirmingClearLogs = false;
@@ -772,6 +953,8 @@ async function initializeAccount(user) {
   document.querySelector("#auth-screen").hidden = true;
   document.querySelector("#app-shell").hidden = false;
   document.querySelector("#activity-list").innerHTML = '<div class="activity-empty"><strong>Loading your little one\'s day…</strong></div>';
+  document.querySelector("#health-record-list").innerHTML = '<div class="health-empty"><strong>Loading health records…</strong></div>';
+  document.querySelector("#health-overview").innerHTML = '<strong>Loading care dates…</strong>';
   setSyncError("");
   try {
     const profileRow = await loadBabyProfile(user.id);
@@ -786,6 +969,7 @@ async function initializeAccount(user) {
     updateLogTypeOptions();
     updateProfileLabels();
     await loadLogs();
+    await loadHealthRecords();
   } catch (error) {
     if (currentUserId !== user.id) return;
     setSyncError(error instanceof Error ? error.message : "Unable to load your baby's data.");
@@ -800,14 +984,19 @@ async function handleSession(session) {
     currentUserId = null;
     loadingUserId = null;
     logs = [];
+    healthRecords = [];
+    pendingDeleteHealthRecordId = null;
+    healthRecordActionError = "";
+    healthRecordActionInProgress = false;
     activityActionMode = null;
     pendingDeleteLogId = null;
     confirmingClearLogs = false;
     activityActionError = "";
     profile = { id: null, name: "Krish", birthday: "", customLogTypes: [], quickLogOrder: [] };
-    for (const dialog of [logDialog, overallLogDialog, profileDialog, passwordDialog]) {
+    for (const dialog of [logDialog, overallLogDialog, healthRecordDialog, profileDialog, passwordDialog]) {
       if (dialog.open) dialog.close();
     }
+    renderHealthRecordList();
     document.querySelector("#app-shell").hidden = true;
     document.querySelector("#auth-screen").hidden = false;
     return;
@@ -837,6 +1026,7 @@ async function refreshAccountData() {
       updateLogTypeOptions();
     }
     await loadLogs();
+    await loadHealthRecords();
     setSyncError("");
   } catch (error) {
     setSyncError(error instanceof Error ? error.message : "Unable to refresh your baby's data.");
@@ -987,7 +1177,6 @@ quickActions.addEventListener("keydown", (event) => {
 document.querySelectorAll("[data-close-dialog]").forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
 typeSelect.addEventListener("change", () => renderDynamicFields(typeSelect.value));
 const activityFilter = document.querySelector("#activity-filter");
-const activityPanel = document.querySelector("#activity");
 activityFilter.addEventListener("change", renderActivity);
 
 function changeOverviewDate(days) {
@@ -1015,7 +1204,11 @@ document.querySelector("#overview-date").addEventListener("change", (event) => {
 function showActivityCategory(filter) {
   activityFilter.value = filter;
   renderActivity();
-  activityPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (location.hash === "#health") {
+    history.pushState(null, "", "#today");
+    updateNavigation("#today");
+  }
+  document.querySelector("#activity-panel").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 const statsGrid = document.querySelector(".stats-grid");
@@ -1030,18 +1223,367 @@ statsGrid.addEventListener("keydown", (event) => {
   showActivityCategory(card.dataset.activityFilter);
 });
 
-function updateNavigation(activeHref = location.hash === "#activity" ? "#activity" : "#today") {
+function updateNavigation(activeHref = location.hash || "#today") {
+  const page = activeHref === "#health" ? "health" : "today";
+  const pageHref = `#${page}`;
+  const pageTitle = page === "health" ? "Health records" : "Today & activity";
+  document.querySelectorAll("[data-page-view]").forEach((view) => {
+    const active = view.dataset.pageView === page;
+    view.hidden = !active;
+    view.setAttribute("aria-hidden", String(!active));
+  });
   document.querySelectorAll(".nav-link").forEach((link) => {
-    const active = link.getAttribute("href") === activeHref;
+    const active = link.getAttribute("href") === pageHref;
     link.classList.toggle("active", active);
     if (active) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   });
+  document.querySelector(".breadcrumb strong").textContent = pageTitle;
+  document.title = `Krish Baby — ${pageTitle}`;
+  if (activeHref === "#activity") {
+    requestAnimationFrame(() => document.querySelector("#activity-panel").scrollIntoView());
+  } else {
+    window.scrollTo(0, 0);
+  }
 }
 document.querySelectorAll(".nav-link").forEach((link) => {
-  link.addEventListener("click", () => updateNavigation(link.getAttribute("href")));
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    const href = link.getAttribute("href");
+    if (location.hash !== href) history.pushState(null, "", href);
+    updateNavigation(href);
+  });
 });
 window.addEventListener("hashchange", () => updateNavigation());
+window.addEventListener("popstate", () => updateNavigation());
+
+const vaccineCatalogEntries = [
+  ...vaccinationReference.vaccines.map((item) => ({ id: item.id, type: "vaccine", item })),
+  ...vaccinationReference.combination_vaccines.map((item) => ({ id: item.id, type: "combination", item })),
+];
+
+function vaccineRecordTitle(entry) {
+  const { item } = entry;
+  return entry.type === "combination"
+    ? `${item.product} (${item.abbreviation})`
+    : `${item.name} (${item.abbreviation})`;
+}
+
+function vaccineNameOptionsMarkup() {
+  const names = new Set();
+  for (const entry of vaccineCatalogEntries) {
+    const { item } = entry;
+    names.add(entry.type === "combination" ? item.product : item.name);
+    if (item.abbreviation) names.add(item.abbreviation);
+    for (const product of item.products || []) names.add(product);
+  }
+  return `<datalist id="vaccine-name-options">${[...names].map((name) => `<option value="${escapeHTML(name)}"></option>`).join("")}</datalist>`;
+}
+
+function vaccineDoseScheduleMarkup(vaccine) {
+  const rows = [];
+  const addDoses = (series, prefix = "") => {
+    for (const dose of series || []) {
+      const interval = dose.min_interval_from_prior_days
+        ? ` · minimum interval ${dose.min_interval_from_prior_days} days`
+        : "";
+      rows.push(`${prefix}${dose.dose ? `Dose ${dose.dose}: ` : ""}${dose.age || "Timing not specified"}${interval}`);
+    }
+  };
+  addDoses(vaccine.routine_series?.doses);
+  for (const productSeries of vaccine.product_dependent_series || []) {
+    if (productSeries.doses?.length) {
+      addDoses(productSeries.doses, `${productSeries.product}: `);
+    }
+  }
+  if (vaccine.routine_series?.dose_rules?.length) {
+    for (const rule of vaccine.routine_series.dose_rules) {
+      rows.push(`${rule.dose_count} doses: ${rule.if}${rule.minimum_interval_months ? ` · minimum interval ${rule.minimum_interval_months} months` : ""}`);
+    }
+  }
+  const series = vaccine.routine_series || {};
+  const ageLimits = vaccine.age_limits
+    ? Object.entries(vaccine.age_limits).map(([name, value]) => `${name.replaceAll("_", " ")}: ${value} days`)
+    : [];
+  const summary = [
+    typeof series.dose_count === "number" ? `${series.dose_count} doses` : series.dose_count,
+    series.recommended_age_years && `Recommended age ${series.recommended_age_years} years`,
+    series.preferred_age && `Preferred age ${series.preferred_age}`,
+    series.age && `Age ${series.age}`,
+    series.first_rsv_season,
+    series.second_rsv_season,
+    series.dose_ages_months_from_first && `Months from first dose: ${series.dose_ages_months_from_first.join(", ")}`,
+  ].filter(Boolean);
+  if (!rows.length) rows.push(...summary);
+  rows.push(...ageLimits);
+  return rows.length
+    ? `<ul>${rows.map((row) => `<li>${escapeHTML(row)}</li>`).join("")}</ul>`
+    : "<p>See the notes and current official guidance for schedule details.</p>";
+}
+
+function renderVaccineCatalog(query = "") {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const matches = vaccineCatalogEntries.filter(({ item }) => (
+    !normalizedQuery || JSON.stringify(item).toLocaleLowerCase().includes(normalizedQuery)
+  ));
+  const vaccines = matches.filter((entry) => entry.type === "vaccine");
+  const combinations = matches.filter((entry) => entry.type === "combination");
+  const renderEntry = (entry) => {
+    const { item } = entry;
+    const schedule = entry.type === "combination"
+      ? `<p>${escapeHTML(item.typical_use || "Combination product")}</p>`
+      : vaccineDoseScheduleMarkup(item);
+    const products = item.products?.length
+      ? `<div class="vaccine-reference-section"><strong>Products listed</strong><p>${item.products.map(escapeHTML).join(" · ")}</p></div>`
+      : "";
+    const protects = item.protects_against?.length
+      ? `<div class="vaccine-reference-section"><strong>Protects against</strong><p>${item.protects_against.map(escapeHTML).join(" · ")}</p></div>`
+      : "";
+    const components = item.components?.length
+      ? `<div class="vaccine-reference-section"><strong>Components</strong><p>${item.components.map(escapeHTML).join(" · ")}</p></div>`
+      : "";
+    const conditionalRules = item.conditional_rules?.length
+      ? `<div class="vaccine-reference-section"><strong>Conditional guidance</strong><ul>${item.conditional_rules.map((rule) => `<li>${escapeHTML(rule.description)}</li>`).join("")}</ul></div>`
+      : "";
+    const notes = item.notes
+      ? `<p class="vaccine-reference-notes">${escapeHTML(item.notes)}</p>`
+      : "";
+    const timingLabel = entry.type === "combination"
+      ? "Typical use"
+      : item.schedule_type
+        ? item.schedule_type.replaceAll("_", " ")
+        : "Routine timing in this reference";
+    return `<details class="vaccine-reference-card">
+      <summary><span><strong>${escapeHTML(entry.type === "combination" ? item.product : item.name)}</strong><small>${escapeHTML(item.abbreviation || item.id)}</small></span><span class="vaccine-reference-kind">${entry.type === "combination" ? "Combination" : item.kind === "vaccine" ? "Vaccine" : "Immunization"}</span></summary>
+      <div class="vaccine-reference-detail">
+        ${protects}${components}
+        <div class="vaccine-reference-section"><strong>${escapeHTML(timingLabel)}</strong>${schedule}</div>
+        ${products}${conditionalRules}${notes}
+        <button type="button" class="text-button" data-record-vaccine-id="${escapeHTML(entry.id)}">Record administration</button>
+      </div>
+    </details>`;
+  };
+  const sections = [
+    vaccines.length ? `<h4>Vaccines and immunizing agents</h4>${vaccines.map(renderEntry).join("")}` : "",
+    combinations.length ? `<h4>Combination products</h4>${combinations.map(renderEntry).join("")}` : "",
+  ].filter(Boolean);
+  document.querySelector("#vaccine-results-count").textContent = `${matches.length} ${matches.length === 1 ? "match" : "matches"}`;
+  document.querySelector("#vaccine-catalog").innerHTML = sections.length
+    ? sections.join("")
+    : '<p class="vaccine-no-results">No matching vaccines or products.</p>';
+}
+
+const vaccineMetadata = vaccinationReference.dataset_metadata;
+document.querySelector("#vaccine-reference-version").textContent =
+  `${vaccineMetadata.schedule_version} · effective ${vaccineMetadata.schedule_effective_date}`;
+document.querySelector("#vaccine-reference-safety").textContent = vaccineMetadata.important_safety_note;
+document.querySelector("#vaccine-reference-sources").innerHTML = vaccineMetadata.sources
+  .filter((source) => source.url.startsWith("https://"))
+  .map((source) => `<a href="${escapeHTML(source.url)}" target="_blank" rel="noreferrer">${escapeHTML(source.authority)}: ${escapeHTML(source.title)}</a>`)
+  .join(" · ");
+document.querySelector("#vaccine-search").addEventListener("input", (event) => {
+  renderVaccineCatalog(event.currentTarget.value);
+});
+renderVaccineCatalog();
+document.querySelector("#vaccine-catalog").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-record-vaccine-id]");
+  if (!button) return;
+  const entry = vaccineCatalogEntries.find((item) => item.id === button.dataset.recordVaccineId);
+  if (!entry) return;
+  openHealthRecordDialog(null, vaccineRecordTitle(entry));
+});
+
+function openHealthRecordDialog(record = null, vaccineTitle = "", initialType = "vaccination") {
+  editingHealthRecordId = record?.id || null;
+  const form = document.querySelector("#health-record-form");
+  const typeSelect = document.querySelector("#health-record-type");
+  typeSelect.value = record?.recordType || initialType;
+  const isNewAppointment = !record && initialType === "visit";
+  typeSelect.disabled = Boolean(record || isNewAppointment);
+  document.querySelector("#health-record-title").textContent = record ? "Edit health record" : isNewAppointment ? "Schedule appointment" : "Add health record";
+  document.querySelector("#save-health-record").textContent = record ? "Save changes" : isNewAppointment ? "Save appointment" : "Save record";
+  document.querySelector("#health-record-error").textContent = "";
+  document.querySelector("#health-record-fields").innerHTML = healthRecordFormFields(typeSelect.value);
+  if (vaccineTitle) form.elements.namedItem("title").value = vaccineTitle;
+  if (isNewAppointment) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    form.elements.namedItem("occurredOn").value = localDateKey(tomorrow);
+  }
+  if (record) {
+    for (const [field, value] of Object.entries({
+      title: record.title,
+      occurredOn: record.occurredOn,
+      occurredTime: record.occurredTime,
+      category: record.category,
+      providerName: record.providerName,
+      facilityName: record.facilityName,
+      manufacturer: record.manufacturer,
+      dose: record.dose,
+      lotNumber: record.lotNumber,
+      nextDueDate: record.nextDueDate,
+      nextDueTime: record.nextDueTime,
+      reason: record.reason,
+      results: record.results,
+      followUpDate: record.followUpDate,
+      followUpTime: record.followUpTime,
+      notes: record.notes,
+    })) {
+      const input = form.elements.namedItem(field);
+      if (input) input.value = value || "";
+    }
+  }
+  healthRecordDialog.showModal();
+  if (record || vaccineTitle || isNewAppointment) form.elements.namedItem("title").focus();
+  else typeSelect.focus();
+}
+
+document.querySelector("#health-overview").addEventListener("click", (event) => {
+  if (!event.target.closest("[data-schedule-appointment]")) return;
+  openHealthRecordDialog(null, "", "visit");
+});
+
+function buildHealthRecord(form) {
+  const data = new FormData(form);
+  const recordType = document.querySelector("#health-record-type").value;
+  const occurredOn = String(data.get("occurredOn") || "");
+  const title = String(data.get("title") || "").trim();
+  const nextDueDate = recordType === "vaccination" ? String(data.get("nextDueDate") || "") : "";
+  const nextDueTime = recordType === "vaccination" ? String(data.get("nextDueTime") || "") : "";
+  const followUpDate = recordType === "visit" ? String(data.get("followUpDate") || "") : "";
+  const followUpTime = recordType === "visit" ? String(data.get("followUpTime") || "") : "";
+  if (!occurredOn || !title) return { error: "Enter the required details before saving." };
+  if (nextDueTime && !nextDueDate) return { error: "Choose a next-dose date before adding its time." };
+  if (followUpTime && !followUpDate) return { error: "Choose a follow-up date before adding its time." };
+  if (nextDueDate && nextDueDate < occurredOn) return { error: "The next dose date must be on or after the vaccination date." };
+  if (followUpDate && followUpDate < occurredOn) return { error: "The follow-up date must be on or after the visit date." };
+  return {
+    record: {
+      recordType,
+      title,
+      occurredOn,
+      occurredTime: recordType === "visit" ? String(data.get("occurredTime") || "") : "",
+      category: recordType === "visit" ? String(data.get("category") || "") : "",
+      providerName: String(data.get("providerName") || "").trim(),
+      facilityName: String(data.get("facilityName") || "").trim(),
+      manufacturer: String(data.get("manufacturer") || "").trim(),
+      dose: String(data.get("dose") || "").trim(),
+      lotNumber: String(data.get("lotNumber") || "").trim(),
+      nextDueDate,
+      nextDueTime,
+      reason: String(data.get("reason") || "").trim(),
+      results: String(data.get("results") || "").trim(),
+      followUpDate,
+      followUpTime,
+      notes: String(data.get("notes") || "").trim(),
+    },
+  };
+}
+
+document.querySelector("#add-health-record").addEventListener("click", () => openHealthRecordDialog());
+document.querySelector("#health-record-type").addEventListener("change", (event) => {
+  document.querySelector("#health-record-fields").innerHTML = healthRecordFormFields(event.currentTarget.value);
+});
+document.querySelector("#health-filter").addEventListener("change", renderHealthRecordList);
+document.querySelector("#health-record-list").addEventListener("click", async (event) => {
+  if (event.target.closest("[data-add-health-record]")) {
+    openHealthRecordDialog();
+    return;
+  }
+  const editButton = event.target.closest("[data-edit-health-record]");
+  if (editButton) {
+    const record = healthRecords.find((item) => item.id === editButton.dataset.editHealthRecord);
+    if (record) openHealthRecordDialog(record);
+    return;
+  }
+  if (event.target.closest("[data-cancel-health-delete]")) {
+    pendingDeleteHealthRecordId = null;
+    healthRecordActionError = "";
+    renderHealthRecordList();
+    return;
+  }
+  const confirmButton = event.target.closest("[data-confirm-health-delete]");
+  if (confirmButton && profile.id && !healthRecordActionInProgress) {
+    const recordId = confirmButton.dataset.confirmHealthDelete;
+    healthRecordActionInProgress = true;
+    healthRecordActionError = "";
+    renderHealthRecordList();
+    try {
+      const { data, error } = await supabase
+        .from("health_records")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", recordId)
+        .eq("baby_id", profile.id)
+        .is("deleted_at", null)
+        .select("id")
+        .single();
+      if (error) throw error;
+      if (!data) throw new Error("The health record was not found or was already removed.");
+      healthRecords = healthRecords.filter((record) => record.id !== recordId);
+      pendingDeleteHealthRecordId = null;
+      showToast("Health record archived");
+    } catch (error) {
+      healthRecordActionError = databaseError(error, "Removing health record");
+    } finally {
+      healthRecordActionInProgress = false;
+      renderHealthRecordList();
+    }
+    return;
+  }
+  const deleteButton = event.target.closest("[data-delete-health-record]");
+  if (deleteButton) {
+    pendingDeleteHealthRecordId = deleteButton.dataset.deleteHealthRecord;
+    healthRecordActionError = "";
+    renderHealthRecordList();
+  }
+});
+
+document.querySelector("#health-record-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const errorElement = document.querySelector("#health-record-error");
+  const saveButton = document.querySelector("#save-health-record");
+  errorElement.textContent = "";
+  if (!profile.id) {
+    errorElement.textContent = "Your baby profile is still loading. Please try again in a moment.";
+    return;
+  }
+  const { record, error: validationError } = buildHealthRecord(event.currentTarget);
+  if (validationError) {
+    errorElement.textContent = validationError;
+    return;
+  }
+  const recordIdToUpdate = editingHealthRecordId;
+  saveButton.disabled = true;
+  try {
+    const query = supabase.from("health_records");
+    const request = recordIdToUpdate
+      ? query.update(toDatabaseHealthRecord(record)).eq("id", recordIdToUpdate).eq("baby_id", profile.id).is("deleted_at", null)
+      : query.insert(toDatabaseHealthRecord(record));
+    const { data, error } = await request
+      .select("id, record_type, title, occurred_on, occurred_time, category, provider_name, facility_name, manufacturer, dose, lot_number, next_due_date, next_due_time, reason, results, follow_up_date, follow_up_time, notes")
+      .single();
+    if (error) throw error;
+    const savedRecord = mapDatabaseHealthRecord(data);
+    if (recordIdToUpdate) {
+      healthRecords = healthRecords.map((item) => item.id === recordIdToUpdate ? savedRecord : item);
+    } else {
+      healthRecords.push(savedRecord);
+      document.querySelector("#health-filter").value = "all";
+    }
+    healthRecordDialog.close();
+    renderHealthRecordList();
+    setSyncError("");
+    showToast(`Health record ${recordIdToUpdate ? "updated" : "saved"}`);
+  } catch (error) {
+    errorElement.textContent = databaseError(error, "Saving health record");
+  } finally {
+    saveButton.disabled = false;
+  }
+});
+healthRecordDialog.addEventListener("close", () => {
+  editingHealthRecordId = null;
+  document.querySelector("#health-record-type").disabled = false;
+});
 
 logForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -1183,7 +1725,6 @@ async function deleteLog(logId) {
     if (error) throw error;
     logs = logs.filter((log) => log.id !== logId);
     pendingDeleteLogId = null;
-    activityActionMode = null;
     renderDashboard();
     showToast("Log removed");
   } catch (error) {

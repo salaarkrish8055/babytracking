@@ -110,6 +110,7 @@ h1 span { color: #8074dc; }
 .custom-quick-action strong { white-space: normal; overflow-wrap: anywhere; }
 
 .section-heading, .activity-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
+.page-view[hidden] { display: none; }
 .section-heading { margin-bottom: 14px; }
 .section-heading .eyebrow, .activity-heading .eyebrow { margin-bottom: 5px; }
 h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spacing: -.4px; font-weight: 700; }
@@ -187,6 +188,95 @@ h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spaci
 .row-delete-confirmation { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; color: #8d3b4e; font-size: 10px; }
 .row-delete-confirmation .button { min-height: 32px; }
 .activity-action-error { grid-column: 2 / -1; color: #ba596e; font-size: 10px; overflow-wrap: anywhere; }
+.health-panel { padding: 21px; margin-top: 24px; background: #fff; border: 1px solid #eceef4; border-radius: 13px; box-shadow: var(--shadow); scroll-margin-top: 18px; }
+.health-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-bottom: 16px; border-bottom: 1px solid #f0f1f5; }
+.health-heading .eyebrow { margin-bottom: 5px; }
+.health-intro { margin: 5px 0 0; color: #9297a6; font-size: 11px; line-height: 1.5; }
+.health-heading > .button { min-height: 42px; flex: 0 0 auto; }
+.health-overview { display: grid; gap: 12px; padding: 13px; margin: 15px 0; color: #676d80; background: #f7f6ff; border: 1px solid #efedfb; border-radius: 9px; font-size: 12px; line-height: 1.5; }
+.health-schedule-group { display: grid; gap: 8px; }
+.health-schedule-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.health-schedule-heading > strong { color: #5e55a6; font-size: 13px; }
+.health-schedule-add { min-height: 34px; padding: 0 10px; color: #6254c2; background: #fff; border: 1px solid #e8e5fb; border-radius: 8px; font-size: 11px; }
+.health-schedule-add:hover { background: #f4f2ff; }
+.health-schedule-empty { color: #858b9b; font-size: 11px; }
+.health-scheduled-list { display: grid; gap: 8px; padding: 0; margin: 0; list-style: none; }
+.health-scheduled-item { display: grid; grid-template-columns: 39px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px; background: #fff; border: 1px solid #eeebfc; border-radius: 8px; }
+.health-scheduled-date { display: grid; width: 39px; height: 43px; align-content: center; justify-items: center; gap: 1px; color: #6f63c5; background: #f3f1ff; border-radius: 8px; }
+.health-scheduled-date strong { font-size: 16px; line-height: 1; }
+.health-scheduled-date span { font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.health-scheduled-copy { display: grid; min-width: 0; gap: 2px; }
+.health-scheduled-category { color: #7d72ca; font-size: 10px; font-weight: 650; }
+.health-scheduled-copy > strong { color: #41475a; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.health-scheduled-year { align-self: start; padding-top: 2px; color: #858b9b; font-size: 10px; }
+.health-scheduled-time { display: flex; align-items: center; gap: 4px; color: #72798b; font-size: 11px; }
+.health-scheduled-time svg { width: 13px; height: 13px; flex: 0 0 auto; color: #9297a6; }
+.health-schedule-more { color: #858b9b; font-size: 11px; }
+.health-overview-overdue > strong { color: #a55364; }
+.health-overview-overdue .health-scheduled-item { border-color: #f4e3e7; }
+.health-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 0 5px; }
+.health-controls h3 { margin: 0; color: #41475a; font-size: 13px; font-weight: 650; }
+.health-controls .filter-select { min-width: 180px; }
+.health-record-list { display: grid; }
+.health-record-card { display: grid; grid-template-columns: 39px minmax(0, 1fr); gap: 12px; padding: 16px 3px; border-bottom: 1px solid #f0f1f5; }
+.health-record-card:last-child { border-bottom: 0; }
+.health-record-icon { display: grid; width: 36px; height: 36px; place-items: center; color: #7669d5; background: #f0efff; border-radius: 11px; font-size: 18px; font-weight: 600; }
+.health-record-icon.visit { color: #47a18b; background: #eaf7f2; }
+.health-record-content { min-width: 0; }
+.health-record-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; color: #9297a6; font-size: 9px; }
+.health-record-title-row time { flex: 0 0 auto; }
+.health-record-type { color: #8276dd; font-size: 8px; font-weight: 700; letter-spacing: .75px; }
+.health-record-card h3 { margin: 4px 0 5px; color: #41475a; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.health-record-details, .health-record-notes { margin: 0 0 6px; color: #858b9b; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+.health-record-notes { padding-left: 9px; border-left: 2px solid #ece9fa; }
+.health-due-badge { display: inline-flex; padding: 4px 7px; color: #4a8f7e; background: #eef8f3; border-radius: 6px; font-size: 9px; font-weight: 600; }
+.health-due-badge.overdue { color: #a55364; background: #fff0f3; }
+.health-record-actions { display: flex; gap: 13px; margin-top: 5px; }
+.health-record-actions .text-button { font-size: 10px; }
+.health-delete-confirmation { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 9px; color: #8d3b4e; font-size: 10px; }
+.health-delete-confirmation .button { min-height: 34px; padding: 0 10px; font-size: 10px; }
+.health-action-error { margin: 6px 0 0; color: #ba596e; font-size: 10px; }
+.health-empty { display: grid; justify-items: center; padding: 27px 14px; text-align: center; }
+.health-empty-icon { display: grid; width: 39px; height: 39px; place-items: center; margin-bottom: 9px; color: #8276dd; background: #f1efff; border-radius: 12px; font-size: 22px; }
+.health-empty strong { margin-bottom: 5px; color: #596074; font-size: 11px; }
+.health-empty p { max-width: 350px; margin: 0 0 12px; color: #9a9eac; font-size: 10px; line-height: 1.55; }
+.health-empty .button { min-height: 36px; }
+.health-disclaimer { margin: 13px 0 0; color: #a0a4b1; font-size: 9px; line-height: 1.5; }
+.health-field-hint { color: #999eac; font-size: 9px; line-height: 1.4; }
+.vaccine-guide { margin: 17px 0 15px; border: 1px solid #eceef4; border-radius: 10px; background: #fff; }
+.vaccine-guide > summary { display: flex; min-height: 58px; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 14px; cursor: pointer; list-style: none; }
+.vaccine-guide > summary::-webkit-details-marker, .vaccine-reference-card > summary::-webkit-details-marker { display: none; }
+.vaccine-guide > summary > span:first-child { display: grid; gap: 4px; }
+.vaccine-guide > summary strong { color: #4a5063; font-size: 11px; }
+.vaccine-guide > summary small { color: #9297a6; font-size: 9px; }
+.vaccine-guide-chevron { color: #8276dd; font-size: 17px; transition: transform .15s; }
+.vaccine-guide[open] .vaccine-guide-chevron { transform: rotate(180deg); }
+.vaccine-guide-content { padding: 0 14px 14px; }
+.vaccine-guide-warning { padding: 10px 11px; margin: 0 0 8px; color: #806b3e; background: #fff9e9; border-radius: 7px; font-size: 10px; line-height: 1.5; }
+.vaccine-guide-source { margin: 0 0 13px; color: #9297a6; font-size: 9px; line-height: 1.5; overflow-wrap: anywhere; }
+.vaccine-guide-source a { color: #6f63c5; text-decoration: underline; text-underline-offset: 2px; }
+.vaccine-search-field { max-width: 430px; margin-bottom: 8px; }
+.vaccine-search-control { position: relative; }
+.vaccine-search-control svg { position: absolute; top: 50%; left: 12px; width: 17px; height: 17px; color: #9297a6; transform: translateY(-50%); pointer-events: none; }
+.vaccine-search-field input { width: 100%; min-height: 42px; padding-left: 38px; border: 1px solid #e6e8f0; border-radius: 9px; background: #fff; color: #41475a; font-size: 14px; }
+.vaccine-search-field input::placeholder { color: #a0a4b1; }
+.vaccine-results-count { margin: 0 0 8px; color: #777d8e; font-size: 11px; }
+.vaccine-catalog h4 { margin: 15px 0 7px; color: #62697c; font-size: 12px; }
+.vaccine-reference-card { border-top: 1px solid #f0f1f5; }
+.vaccine-reference-card > summary { display: flex; min-height: 48px; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; list-style: none; }
+.vaccine-reference-card > summary > span:first-child { display: grid; min-width: 0; gap: 3px; }
+.vaccine-reference-card > summary strong { color: #4a5063; font-size: 12px; }
+.vaccine-reference-card > summary small { color: #777d8e; font-size: 10px; }
+.vaccine-reference-kind { flex: 0 0 auto; padding: 5px 8px; color: #7165c7; background: #f2f0ff; border-radius: 6px; font-size: 9px; font-weight: 600; }
+.vaccine-reference-detail { padding: 0 0 12px 10px; color: #6f7588; font-size: 12px; line-height: 1.55; }
+.vaccine-reference-section { margin: 0 0 9px; }
+.vaccine-reference-section > strong { color: #555c70; font-size: 11px; }
+.vaccine-reference-section p, .vaccine-reference-section ul, .vaccine-reference-notes, .vaccine-reference-detail > p { margin: 3px 0 0; }
+.vaccine-reference-section ul { padding-left: 17px; }
+.vaccine-reference-section li + li { margin-top: 3px; }
+.vaccine-reference-notes { padding: 8px 9px; background: #f8f8fc; border-radius: 7px; }
+.vaccine-reference-detail > .text-button { min-height: 34px; margin-top: 7px; }
+.vaccine-no-results { padding: 14px 0; margin: 0; color: #777d8e; font-size: 12px; }
 .page-footer { display: flex; justify-content: space-between; gap: 10px; padding: 20px 1px 0; color: #a4a8b5; font-size: 9px; }
 .page-footer span:first-child span { color: #d887a2; }
 
@@ -314,9 +404,9 @@ h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spaci
   .auth-screen { min-height: 100vh; min-height: 100dvh; padding: max(24px, env(safe-area-inset-top, 0px)) 16px max(24px, env(safe-area-inset-bottom, 0px)); }
   .sidebar { position: fixed; inset: auto 0 0; width: auto; height: calc(62px + env(safe-area-inset-bottom, 0px)); flex-direction: row; justify-content: center; padding: 5px max(12px, env(safe-area-inset-right, 0px)) calc(5px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); border-top: 1px solid #eff0f5; border-right: 0; background: #fff; }
   .brand, .sidebar-bottom { display: none; }
-  .nav-links { display: flex; width: 100%; max-width: 330px; justify-content: space-around; }
-  .nav-link { width: 50%; min-height: 48px; }
-  .nav-link span { display: inline; font-size: 10px; }
+  .nav-links { display: flex; width: 100%; max-width: 420px; justify-content: space-around; }
+  .nav-link { width: 50%; min-width: 0; min-height: 48px; gap: 4px; flex-direction: column; }
+  .nav-link span { display: inline; font-size: 8px; line-height: 1.1; white-space: nowrap; }
   .nav-link svg { width: 17px; height: 17px; }
   .main-content { min-height: 100vh; min-height: 100dvh; margin-left: 0; padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
   .topbar { height: auto; min-height: calc(55px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
@@ -374,6 +464,82 @@ h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spaci
   .activity-time { font-size: 10px; }
   .row-action-button { min-height: 40px; }
   .row-delete-confirmation { justify-content: flex-end; }
+  .health-heading { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .health-heading > div { min-width: 0; }
+  .health-panel { padding: 17px 14px; }
+  .health-heading > .button { width: 100%; min-height: 44px; font-size: 13px; }
+  .health-heading h2 { font-size: 21px; line-height: 1.25; }
+  .health-heading .eyebrow { font-size: 9px; }
+  .health-intro { max-width: 34ch; font-size: 13px; line-height: 1.5; }
+  .page-view#health { padding-top: 16px; }
+  .health-panel { display: flex; flex-direction: column; gap: 0; padding: 0; margin: 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+  .health-panel > .health-heading { order: 1; gap: 14px; padding: 4px 2px 17px; border-bottom: 0; }
+  .health-panel > .health-overview { order: 2; }
+  .health-panel > .health-controls { order: 3; }
+  .health-panel > .health-record-list { order: 4; }
+  .health-panel > .vaccine-guide { order: 5; }
+  .health-panel > .health-disclaimer { order: 6; }
+  .health-overview { gap: 13px; padding: 0; margin: 0 0 18px; background: transparent; border: 0; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+  .health-schedule-group { gap: 9px; }
+  .health-schedule-heading > strong { color: #41475a; font-size: 16px; letter-spacing: -.2px; }
+  .health-schedule-add { min-height: 40px; padding: 0 12px; font-size: 12px; }
+  .health-schedule-empty { padding: 13px 14px; color: #72798b; background: #fff; border: 1px dashed #dedbed; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+  .health-scheduled-list { gap: 9px; }
+  .health-scheduled-item { grid-template-columns: 45px minmax(0, 1fr) auto; gap: 11px; min-height: 76px; padding: 12px; border-color: #eceef4; border-radius: 13px; box-shadow: 0 3px 12px rgba(37, 43, 74, .04); }
+  .health-scheduled-date { width: 45px; height: 49px; border-radius: 10px; }
+  .health-scheduled-date strong { font-size: 18px; }
+  .health-scheduled-date span { font-size: 10px; }
+  .health-scheduled-category { font-size: 11px; }
+  .health-scheduled-copy > strong { font-size: 15px; }
+  .health-scheduled-year { font-size: 11px; }
+  .health-scheduled-time { gap: 5px; font-size: 12px; }
+  .health-scheduled-time svg { width: 15px; height: 15px; }
+  .health-schedule-more { font-size: 12px; }
+  .vaccine-guide { margin: 17px 0 0; border-color: #e7e8ef; border-radius: 12px; }
+  .vaccine-guide > summary { min-height: 62px; padding: 11px 12px; }
+  .vaccine-guide > summary strong { font-size: 13px; }
+  .vaccine-guide > summary small { font-size: 11px; line-height: 1.35; }
+  .vaccine-guide-content { padding: 0 12px 13px; }
+  .vaccine-guide-warning { padding: 10px 11px; font-size: 12px; line-height: 1.5; }
+  .vaccine-guide-source { margin-bottom: 12px; font-size: 11px; line-height: 1.5; }
+  .vaccine-search-field { margin-bottom: 9px; }
+  .vaccine-search-field label { font-size: 12px; }
+  .vaccine-search-field .vaccine-search-control input { min-height: 44px; padding-left: 38px; font-size: 16px; }
+  .vaccine-reference-card > summary { min-height: 56px; gap: 8px; }
+  .vaccine-reference-card > summary strong { font-size: 13px; line-height: 1.3; }
+  .vaccine-reference-card > summary small { font-size: 11px; }
+  .vaccine-reference-kind { font-size: 10px; }
+  .vaccine-reference-detail { padding: 0 0 14px 5px; font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+  .vaccine-reference-section { margin-bottom: 12px; }
+  .vaccine-reference-section > strong { font-size: 12px; }
+  .vaccine-reference-section ul { padding-left: 19px; }
+  .vaccine-reference-notes { padding: 10px; }
+  .vaccine-reference-detail > .text-button { min-height: 42px; font-size: 12px; }
+  .vaccine-results-count { margin: 0 0 9px; font-size: 12px; }
+  .vaccine-catalog h4 { margin: 16px 0 8px; font-size: 13px; }
+  .health-controls { min-height: 44px; margin: 0 0 8px; padding-top: 13px; border-top: 1px solid #e9ebf2; }
+  .health-controls h3 { font-size: 16px; }
+  .health-controls .filter-select { width: auto; min-width: 0; max-width: 58%; min-height: 42px; padding: 8px 29px 8px 10px; font-size: 16px; }
+  .health-record-list { gap: 9px; }
+  .health-record-card { grid-template-columns: 38px minmax(0, 1fr); gap: 11px; padding: 14px 12px; background: #fff; border: 1px solid #eceef4; border-radius: 12px; box-shadow: 0 3px 12px rgba(37, 43, 74, .035); }
+  .health-record-icon { width: 36px; height: 36px; }
+  .health-record-title-row { align-items: center; flex-wrap: wrap; gap: 5px 9px; font-size: 11px; }
+  .health-record-type { font-size: 10px; letter-spacing: .6px; }
+  .health-record-title-row time { font-size: 11px; }
+  .health-record-card h3 { margin: 5px 0 7px; font-size: 15px; line-height: 1.35; }
+  .health-record-details, .health-record-notes { margin-bottom: 8px; font-size: 13px; line-height: 1.5; }
+  .health-due-badge { padding: 5px 8px; font-size: 11px; }
+  .health-record-actions { gap: 17px; margin-top: 7px; }
+  .health-record-actions .text-button { min-height: 40px; font-size: 12px; }
+  .health-delete-confirmation { gap: 7px; font-size: 12px; }
+  .health-delete-confirmation .button { min-height: 42px; padding: 0 12px; font-size: 12px; }
+  .health-action-error { font-size: 12px; }
+  .health-empty { padding: 30px 12px; }
+  .health-empty strong { font-size: 14px; }
+  .health-empty p { font-size: 13px; line-height: 1.5; }
+  .health-empty .button { min-height: 42px; font-size: 12px; }
+  .health-disclaimer { margin-top: 10px; font-size: 11px; line-height: 1.5; }
+  .health-record-modal .form-row { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .page-footer { flex-direction: column; gap: 5px; padding-bottom: 8px; font-size: 10px; }
   .modal { width: calc(100vw - 24px); max-width: 520px; max-height: 88vh; max-height: 88dvh; margin: auto; }
   .modal form { padding: 16px 14px max(16px, env(safe-area-inset-bottom, 0px)); }
