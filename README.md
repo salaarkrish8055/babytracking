@@ -6,6 +6,8 @@ Use the overview date controls to browse daily totals for today or any earlier d
 
 Sleep logs can be saved as soon as a baby falls asleep; edit the entry after wake-up to add the end time and calculate the nap duration.
 
+In Recent activity, choose **Edit** or **Delete** to reveal per-entry actions. Individual deletes and **Clear all** require an explicit yes/no confirmation.
+
 ## Run locally
 
 ```sh

@@ -18,7 +18,6 @@ const maxCustomLogTypes = 12;
 const logDialog = document.querySelector("#log-dialog");
 const profileDialog = document.querySelector("#profile-dialog");
 const passwordDialog = document.querySelector("#password-dialog");
-const clearLogsDialog = document.querySelector("#clear-logs-dialog");
 const logForm = document.querySelector("#log-form");
 const typeSelect = document.querySelector("#log-type");
 const dynamicFields = document.querySelector("#dynamic-fields");
@@ -42,6 +41,11 @@ let quickLogOrderSaveInProgress = false;
 let editingLogId = null;
 let overviewDate = new Date();
 overviewDate.setHours(0, 0, 0, 0);
+let activityActionMode = null;
+let pendingDeleteLogId = null;
+let confirmingClearLogs = false;
+let activityActionError = "";
+let activityActionInProgress = false;
 
 function localDateKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -192,7 +196,7 @@ function renderActivity() {
     .sort((a, b) => new Date(b.time) - new Date(a.time));
   const todayLogs = matchingLogs.filter((log) => localDateKey(new Date(log.time)) === todayKey);
   const olderLogs = matchingLogs.filter((log) => localDateKey(new Date(log.time)) !== todayKey);
-  document.querySelector("#clear-logs-button").hidden = logs.length === 0;
+  updateActivityControls();
 
   if (!matchingLogs.length) {
     const filtered = filter !== "all";
@@ -220,11 +224,43 @@ function renderActivityItem(log) {
   const when = new Date(log.time);
   const note = log.note ? ` · ${escapeHTML(log.note)}` : "";
   const label = log.label || labels[log.type] || "Care";
+  const isPendingDelete = pendingDeleteLogId === log.id;
+  let actionMarkup = "";
+  let confirmationMarkup = "";
+  if (activityActionMode === "edit") {
+    actionMarkup = `<button class="button button-secondary row-action-button" type="button" data-edit-log="${escapeHTML(log.id)}">${editIcon()}<span>Edit</span></button>`;
+  } else if (activityActionMode === "delete" && isPendingDelete) {
+    confirmationMarkup = `<div class="row-delete-confirmation" role="group" aria-label="Confirm deleting ${escapeHTML(label)}"><span>Delete this entry?</span><button class="button button-secondary row-action-button" type="button" data-cancel-delete${activityActionInProgress ? " disabled" : ""}>No</button><button class="button button-danger row-action-button" type="button" data-confirm-delete="${escapeHTML(log.id)}"${activityActionInProgress ? " disabled" : ""}>Yes</button></div>`;
+  } else if (activityActionMode === "delete") {
+    actionMarkup = `<button class="button button-secondary row-action-button" type="button" data-delete-log="${escapeHTML(log.id)}">${trashIcon()}<span>Delete</span></button>`;
+  }
   return `<article class="activity-item">
     <span class="activity-type-icon ${log.type}">${icons[log.type] || icons.care}</span>
     <span class="activity-copy"><strong>${escapeHTML(label)}</strong><small>${activityDescription(log)}${note}</small></span>
-    <span class="activity-meta"><time class="activity-time" datetime="${escapeHTML(when.toISOString())}">${formatTime(when)}</time><span class="activity-actions"><button class="edit-log" type="button" data-edit-log="${escapeHTML(log.id)}" aria-label="Edit ${escapeHTML(label)} log">${editIcon()}</button><button class="delete-log" type="button" data-delete-log="${escapeHTML(log.id)}" aria-label="Delete ${escapeHTML(label)} log">${trashIcon()}</button></span></span>
+    <span class="activity-meta"><time class="activity-time" datetime="${escapeHTML(when.toISOString())}">${formatTime(when)}</time>${actionMarkup}</span>
+    ${confirmationMarkup}
+    ${isPendingDelete && activityActionError ? `<span class="activity-action-error" role="alert">${escapeHTML(activityActionError)}</span>` : ""}
   </article>`;
+}
+
+function updateActivityControls() {
+  const hasLogs = logs.length > 0;
+  const clearButton = document.querySelector("#clear-logs-button");
+  clearButton.hidden = !hasLogs || confirmingClearLogs;
+  document.querySelector("#edit-logs-mode").hidden = !hasLogs || confirmingClearLogs;
+  document.querySelector("#delete-logs-mode").hidden = !hasLogs || confirmingClearLogs;
+  document.querySelector("#cancel-log-action").hidden = !activityActionMode || confirmingClearLogs;
+  document.querySelector("#edit-logs-mode").setAttribute("aria-pressed", String(activityActionMode === "edit"));
+  document.querySelector("#delete-logs-mode").setAttribute("aria-pressed", String(activityActionMode === "delete"));
+  const confirmation = document.querySelector("#clear-logs-confirmation");
+  confirmation.hidden = !confirmingClearLogs;
+  if (confirmingClearLogs) {
+    document.querySelector("#clear-logs-message").textContent =
+      `Delete all ${logs.length} ${logs.length === 1 ? "entry" : "entries"}?`;
+    document.querySelector("#clear-logs-error").textContent = activityActionError;
+    document.querySelector("#confirm-clear-logs").disabled = activityActionInProgress;
+    document.querySelector("#cancel-clear-logs").disabled = activityActionInProgress;
+  }
 }
 
 function editIcon() {
@@ -580,6 +616,10 @@ async function initializeAccount(user) {
   currentUserId = user.id;
   loadingUserId = user.id;
   logs = [];
+  activityActionMode = null;
+  pendingDeleteLogId = null;
+  confirmingClearLogs = false;
+  activityActionError = "";
   profile = { id: null, name: "Krish", birthday: "", customLogTypes: [], quickLogOrder: [] };
   document.querySelector("#auth-screen").hidden = true;
   document.querySelector("#app-shell").hidden = false;
@@ -612,8 +652,12 @@ async function handleSession(session) {
     currentUserId = null;
     loadingUserId = null;
     logs = [];
+    activityActionMode = null;
+    pendingDeleteLogId = null;
+    confirmingClearLogs = false;
+    activityActionError = "";
     profile = { id: null, name: "Krish", birthday: "", customLogTypes: [], quickLogOrder: [] };
-    for (const dialog of [logDialog, profileDialog, passwordDialog, clearLogsDialog]) {
+    for (const dialog of [logDialog, profileDialog, passwordDialog]) {
       if (dialog.open) dialog.close();
     }
     document.querySelector("#app-shell").hidden = true;
@@ -951,61 +995,122 @@ logForm.addEventListener("submit", async (event) => {
 });
 
 activityList.addEventListener("click", async (event) => {
+  const cancelDeleteButton = event.target.closest("[data-cancel-delete]");
+  if (cancelDeleteButton) {
+    pendingDeleteLogId = null;
+    activityActionError = "";
+    renderActivity();
+    return;
+  }
+  const confirmDeleteButton = event.target.closest("[data-confirm-delete]");
+  if (confirmDeleteButton && profile.id && !activityActionInProgress) {
+    await deleteLog(confirmDeleteButton.dataset.confirmDelete);
+    return;
+  }
   const editButton = event.target.closest("[data-edit-log]");
   if (editButton) {
     const log = logs.find((item) => item.id === editButton.dataset.editLog);
-    if (log) openLogDialog(log.type === "custom" ? `custom:${log.careLabel}` : log.type, log);
+    if (log) {
+      activityActionMode = null;
+      pendingDeleteLogId = null;
+      renderActivity();
+      openLogDialog(log.type === "custom" ? `custom:${log.careLabel}` : log.type, log);
+    }
     return;
   }
   const button = event.target.closest("[data-delete-log]");
-  if (!button || !profile.id) return;
-  button.disabled = true;
+  if (!button) return;
+  pendingDeleteLogId = button.dataset.deleteLog;
+  activityActionError = "";
+  renderActivity();
+});
+
+async function deleteLog(logId) {
+  activityActionInProgress = true;
+  activityActionError = "";
+  renderActivity();
   try {
     const { error } = await supabase
       .from("care_logs")
       .delete()
-      .eq("id", button.dataset.deleteLog)
+      .eq("id", logId)
       .eq("baby_id", profile.id);
     if (error) throw error;
-    logs = logs.filter((log) => log.id !== button.dataset.deleteLog);
+    logs = logs.filter((log) => log.id !== logId);
+    pendingDeleteLogId = null;
+    activityActionMode = null;
     renderDashboard();
     showToast("Log removed");
   } catch (error) {
-    showToast(databaseError(error, "Removing log"));
-    button.disabled = false;
+    activityActionError = databaseError(error, "Removing log");
+  } finally {
+    activityActionInProgress = false;
+    if (pendingDeleteLogId === logId) renderActivity();
   }
-});
+}
 
 const clearLogsButton = document.querySelector("#clear-logs-button");
 const confirmClearLogsButton = document.querySelector("#confirm-clear-logs");
 clearLogsButton.addEventListener("click", () => {
   if (!logs.length || !profile.id) return;
-  const count = logs.length;
-  document.querySelector("#clear-logs-confirmation").textContent =
-    `This will permanently delete all ${count} ${count === 1 ? "log" : "logs"} for ${profile.name}. This cannot be undone.`;
-  document.querySelector("#clear-logs-error").textContent = "";
-  clearLogsDialog.showModal();
+  activityActionMode = null;
+  pendingDeleteLogId = null;
+  activityActionError = "";
+  confirmingClearLogs = true;
+  updateActivityControls();
   document.querySelector("#cancel-clear-logs").focus();
 });
 
+document.querySelector("#cancel-clear-logs").addEventListener("click", () => {
+  confirmingClearLogs = false;
+  activityActionError = "";
+  updateActivityControls();
+  clearLogsButton.focus();
+});
+
+document.querySelector("#cancel-log-action").addEventListener("click", () => {
+  activityActionMode = null;
+  pendingDeleteLogId = null;
+  activityActionError = "";
+  renderActivity();
+});
+
+document.querySelector("#edit-logs-mode").addEventListener("click", () => {
+  activityActionMode = activityActionMode === "edit" ? null : "edit";
+  pendingDeleteLogId = null;
+  activityActionError = "";
+  renderActivity();
+});
+
+document.querySelector("#delete-logs-mode").addEventListener("click", () => {
+  activityActionMode = activityActionMode === "delete" ? null : "delete";
+  pendingDeleteLogId = null;
+  activityActionError = "";
+  renderActivity();
+});
+
 confirmClearLogsButton.addEventListener("click", async () => {
-  if (!logs.length || !profile.id) {
-    clearLogsDialog.close();
+  if (!logs.length || !profile.id || activityActionInProgress) {
     return;
   }
+  activityActionInProgress = true;
+  activityActionError = "";
   confirmClearLogsButton.disabled = true;
-  document.querySelector("#clear-logs-error").textContent = "";
+  document.querySelector("#cancel-clear-logs").disabled = true;
   try {
     const { error } = await supabase.from("care_logs").delete().eq("baby_id", profile.id);
     if (error) throw error;
     logs = [];
+    confirmingClearLogs = false;
     renderDashboard();
-    clearLogsDialog.close();
     showToast("All logs removed");
   } catch (error) {
-    document.querySelector("#clear-logs-error").textContent = databaseError(error, "Removing logs");
+    activityActionError = databaseError(error, "Removing logs");
+    updateActivityControls();
   } finally {
+    activityActionInProgress = false;
     confirmClearLogsButton.disabled = false;
+    document.querySelector("#cancel-clear-logs").disabled = false;
   }
 });
 
