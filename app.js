@@ -40,6 +40,8 @@ let draggedQuickLogType = null;
 let draggedProfileOrderType = null;
 let quickLogOrderSaveInProgress = false;
 let editingLogId = null;
+let overviewDate = new Date();
+overviewDate.setHours(0, 0, 0, 0);
 
 function localDateKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -67,7 +69,20 @@ function escapeHTML(value) {
 function updateDateLabels() {
   const now = new Date();
   document.querySelector("#header-date").textContent = formatDate(now, { weekday: "long", month: "long", day: "numeric" });
-  document.querySelector("#today-pill").textContent = formatDate(now, { month: "short", day: "numeric" });
+  document.querySelector("#overview-date").max = localDateKey(now);
+  updateOverviewDateControls();
+}
+
+function updateOverviewDateControls() {
+  const date = document.querySelector("#overview-date");
+  const todayKey = localDateKey(new Date());
+  date.max = todayKey;
+  const selectedKey = localDateKey(overviewDate);
+  date.value = selectedKey;
+  document.querySelector("#next-overview-day").disabled = selectedKey >= todayKey;
+  document.querySelector("#overview-title").textContent = selectedKey === todayKey
+    ? "Today's overview"
+    : `Overview for ${formatDate(overviewDate, { weekday: "short", month: "short", day: "numeric" })}`;
 }
 
 function updateProfileLabels() {
@@ -80,12 +95,16 @@ function updateProfileLabels() {
 }
 
 function renderDashboard() {
-  const todayKey = localDateKey(new Date());
-  const todayLogs = logs.filter((log) => localDateKey(new Date(log.time)) === todayKey);
+  const overviewKey = localDateKey(overviewDate);
+  const todayLogs = logs.filter((log) => localDateKey(new Date(log.time)) === overviewKey);
   const feedLogs = todayLogs.filter((log) => log.type === "feed");
-  const sleepMinutes = todayLogs.filter((log) => log.type === "sleep").reduce((total, log) => total + sleepDurationMinutes(log), 0);
+  const sleepMinutes = todayLogs.filter((log) => log.type === "sleep").reduce((total, log) => total + sleepDurationForDay(log, overviewDate), 0);
   const diaperLogs = todayLogs.filter((log) => log.type === "diaper");
   const careLogs = todayLogs.filter((log) => log.type === "care");
+  document.querySelector(".stats-grid").setAttribute(
+    "aria-label",
+    `${formatDate(overviewDate, { month: "long", day: "numeric" })} totals`,
+  );
 
   document.querySelector("#feed-count").textContent = feedLogs.length;
   document.querySelector("#feed-detail").textContent = feedLogs.length ? `${feedLogs.length} little ${feedLogs.length === 1 ? "feed" : "feeds"} so far today` : "Your first feed is ready to log";
@@ -100,8 +119,20 @@ function renderDashboard() {
   setProgress("#sleep-progress", sleepMinutes, 720);
   setProgress("#diaper-progress", diaperLogs.length, 10);
   setProgress("#care-progress", careLogs.length, 5);
+  updateOverviewDateControls();
   renderCustomOverviewCards(todayLogs);
   renderActivity();
+}
+
+function sleepDurationForDay(log, day) {
+  if (Number(log.duration) > 0) return Number(log.duration);
+  const start = new Date(log.time);
+  const dayStart = new Date(day);
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+  const intervalStart = Math.max(start.getTime(), dayStart.getTime());
+  const intervalEnd = Math.min(Date.now(), dayEnd.getTime());
+  return Math.max(0, Math.floor((intervalEnd - intervalStart) / 60000));
 }
 
 function renderCustomOverviewCards(todayLogs) {
@@ -766,6 +797,28 @@ typeSelect.addEventListener("change", () => renderDynamicFields(typeSelect.value
 const activityFilter = document.querySelector("#activity-filter");
 const activityPanel = document.querySelector("#activity");
 activityFilter.addEventListener("change", renderActivity);
+
+function changeOverviewDate(days) {
+  const nextDate = new Date(overviewDate);
+  nextDate.setDate(nextDate.getDate() + days);
+  if (localDateKey(nextDate) > localDateKey(new Date())) return;
+  overviewDate = nextDate;
+  renderDashboard();
+}
+
+document.querySelector("#previous-overview-day").addEventListener("click", () => changeOverviewDate(-1));
+document.querySelector("#next-overview-day").addEventListener("click", () => changeOverviewDate(1));
+document.querySelector("#overview-date").addEventListener("change", (event) => {
+  const value = event.currentTarget.value;
+  if (!value) return;
+  const selectedDate = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(selectedDate.getTime()) || localDateKey(selectedDate) > localDateKey(new Date())) {
+    updateOverviewDateControls();
+    return;
+  }
+  overviewDate = selectedDate;
+  renderDashboard();
+});
 
 function showActivityCategory(filter) {
   activityFilter.value = filter;

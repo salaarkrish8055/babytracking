@@ -143,9 +143,14 @@
           <section class="section-heading">
             <div>
               <p class="eyebrow">A LITTLE CHECK-IN</p>
-              <h2>Today's overview</h2>
+              <h2 id="overview-title">Today's overview</h2>
             </div>
-            <span class="date-pill" id="today-pill"></span>
+            <div class="overview-date-controls" aria-label="Overview date">
+              <button class="overview-day-button" id="previous-overview-day" type="button" aria-label="Previous day">‹</button>
+              <label class="sr-only" for="overview-date">Choose overview date</label>
+              <input class="date-pill" id="overview-date" type="date" />
+              <button class="overview-day-button" id="next-overview-day" type="button" aria-label="Next day">›</button>
+            </div>
           </section>
 
           <section class="stats-grid" aria-label="Today's totals">

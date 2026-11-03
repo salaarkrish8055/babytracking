@@ -102,7 +102,11 @@ h1 span { color: #8074dc; }
 .section-heading { margin-bottom: 14px; }
 .section-heading .eyebrow, .activity-heading .eyebrow { margin-bottom: 5px; }
 h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spacing: -.4px; font-weight: 700; }
-.date-pill { padding: 7px 10px; color: #7d8293; background: #fff; border: 1px solid #eceef4; border-radius: 8px; font-size: 10px; font-weight: 600; }
+.overview-date-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.date-pill { width: 140px; min-height: 36px; padding: 6px 8px; color: #7d8293; background: #fff; border: 1px solid #eceef4; border-radius: 8px; font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.overview-day-button { display: grid; width: 34px; height: 34px; place-items: center; color: #777d8e; background: #fff; border: 1px solid #eceef4; border-radius: 8px; font-size: 20px; line-height: 1; }
+.overview-day-button:hover:not(:disabled) { color: var(--purple-dark); border-color: #d9d4fb; }
+.overview-day-button:disabled { color: #c5c7d0; background: #f8f8fb; cursor: not-allowed; }
 .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
 .stat-card { min-width: 0; padding: 15px 15px 13px; background: #fff; border: 1px solid #eceef4; border-radius: 12px; box-shadow: 0 3px 11px #29305707; cursor: pointer; transition: border-color .16s, box-shadow .16s, transform .16s; }
 .stat-card:hover { transform: translateY(-2px); border-color: #d9d4fb; box-shadow: 0 7px 18px #2930570d; }
@@ -319,7 +323,10 @@ h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spaci
   .quick-actions-hint { gap: 5px; margin: -17px 0 24px; font-size: 10px; line-height: 1.45; }
   .section-heading { align-items: center; margin-bottom: 12px; }
   h2 { font-size: 17px; }
-  .date-pill { padding: 6px 8px; font-size: 9px; }
+  .section-heading { align-items: flex-start; flex-wrap: wrap; }
+  .overview-date-controls { width: 100%; justify-content: flex-end; }
+  .date-pill { width: 150px; min-height: 40px; font-size: 16px; }
+  .overview-day-button { width: 40px; height: 40px; }
   .stats-grid { gap: 9px; }
   .stat-card { min-height: 132px; padding: 12px 11px 11px; }
   .stat-card-top { gap: 7px; }
