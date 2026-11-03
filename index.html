@@ -113,7 +113,7 @@
             </button>
           </section>
 
-          <section class="quick-actions" aria-label="Quick log">
+          <section class="quick-actions" id="quick-actions" aria-label="Quick log">
             <button type="button" class="quick-action feed-action" data-log-type="feed">
               <span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h8l1 15H7L8 5Z"/><path d="M9 5V3h6v2M8 9h8"/><path d="M11 13h2"/></svg></span>
               <span><strong>Feeding</strong><small>Log a feed</small></span>
@@ -145,25 +145,25 @@
           </section>
 
           <section class="stats-grid" aria-label="Today's totals">
-            <article class="stat-card feeding-stat">
+            <article class="stat-card feeding-stat" role="button" tabindex="0" aria-label="View feeding logs" aria-pressed="false" data-activity-filter="feed">
               <div class="stat-card-top"><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h8l1 15H7L8 5Z"/><path d="M9 5V3h6v2M8 9h8"/></svg></span><span class="stat-label">FEEDINGS</span></div>
               <div class="stat-value"><strong id="feed-count">0</strong><span>feeds</span></div>
               <p class="stat-detail" id="feed-detail">Your first feed is ready to log</p>
               <div class="stat-progress"><span id="feed-progress"></span></div>
             </article>
-            <article class="stat-card sleep-stat">
+            <article class="stat-card sleep-stat" role="button" tabindex="0" aria-label="View sleep logs" aria-pressed="false" data-activity-filter="sleep">
               <div class="stat-card-top"><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.8A8 8 0 0 1 9.2 4.5a8.2 8.2 0 1 0 10.3 10.3Z"/></svg></span><span class="stat-label">SLEEP</span></div>
               <div class="stat-value"><strong id="sleep-total">0h 0m</strong></div>
               <p class="stat-detail" id="sleep-detail">Little rests add up</p>
               <div class="stat-progress"><span id="sleep-progress"></span></div>
             </article>
-            <article class="stat-card diaper-stat">
+            <article class="stat-card diaper-stat" role="button" tabindex="0" aria-label="View diaper change logs" aria-pressed="false" data-activity-filter="diaper">
               <div class="stat-card-top"><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14l-1.2 10a2 2 0 0 1-2 1.7H8.2a2 2 0 0 1-2-1.7L5 7.5Z"/><path d="M5 8 3.5 5.5M19 8l1.5-2.5"/></svg></span><span class="stat-label">DIAPER CHANGES</span></div>
               <div class="stat-value"><strong id="diaper-count">0</strong><span>changes</span></div>
               <p class="stat-detail" id="diaper-detail">Every change, captured</p>
               <div class="stat-progress"><span id="diaper-progress"></span></div>
             </article>
-            <article class="stat-card care-stat">
+            <article class="stat-card care-stat" role="button" tabindex="0" aria-label="View other care and custom logs" aria-pressed="false" data-activity-filter="care">
               <div class="stat-card-top"><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.2-7.5-9.7A4.2 4.2 0 0 1 12 7.8a4.2 4.2 0 0 1 7.5 2.5C19.5 15.8 12 20 12 20Z"/><path d="M12 10v5M9.5 12.5h5"/></svg></span><span class="stat-label">OTHER MOMENTS</span></div>
               <div class="stat-value"><strong id="care-count">0</strong><span>logged</span></div>
               <p class="stat-detail" id="care-detail">The little things matter, too</p>
@@ -234,6 +234,16 @@
         </div>
         <div class="form-field"><label for="baby-name">Baby's name</label><input id="baby-name" name="babyName" maxlength="40" required /></div>
         <div class="form-field"><label for="baby-birthday">Birthday <span class="optional">(optional)</span></label><input id="baby-birthday" name="birthday" type="date" /></div>
+        <section class="custom-log-settings" aria-labelledby="custom-log-settings-title">
+          <div class="custom-log-settings-heading"><strong id="custom-log-settings-title">Custom log options</strong><p>Add categories such as urine, medicine, or temperature.</p></div>
+          <div class="custom-log-add">
+            <label class="sr-only" for="new-custom-log-type">New custom log name</label>
+            <input id="new-custom-log-type" maxlength="60" placeholder="e.g. Urine" />
+            <button class="button button-secondary" id="add-custom-log-type" type="button">Add</button>
+          </div>
+          <p class="form-error" id="custom-log-type-error" role="alert"></p>
+          <ul class="custom-log-type-list" id="custom-log-type-list"></ul>
+        </section>
         <div class="form-error" id="profile-error" role="alert"></div>
         <div class="modal-actions profile-modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-secondary" id="sign-out-profile" type="button">Sign out</button><button class="button button-primary" type="submit">Save profile</button></div>
       </form>

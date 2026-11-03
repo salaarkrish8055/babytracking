@@ -14,6 +14,7 @@ const icons = {
 };
 
 const labels = { feed: "Feeding", sleep: "Sleep", diaper: "Diaper change", care: "Other care" };
+const maxCustomLogTypes = 12;
 const logDialog = document.querySelector("#log-dialog");
 const profileDialog = document.querySelector("#profile-dialog");
 const passwordDialog = document.querySelector("#password-dialog");
@@ -24,7 +25,8 @@ const activityList = document.querySelector("#activity-list");
 const toast = document.querySelector("#toast");
 
 let logs = [];
-let profile = { id: null, name: "Krish", birthday: "" };
+let profile = { id: null, name: "Krish", birthday: "", customLogTypes: [] };
+let draftCustomLogTypes = [];
 let currentUserId = null;
 let authMode = "signin";
 let toastTimeout;
@@ -76,7 +78,7 @@ function renderDashboard() {
   const feedLogs = todayLogs.filter((log) => log.type === "feed");
   const sleepMinutes = todayLogs.filter((log) => log.type === "sleep").reduce((total, log) => total + (Number(log.duration) || 0), 0);
   const diaperLogs = todayLogs.filter((log) => log.type === "diaper");
-  const careLogs = todayLogs.filter((log) => log.type === "care");
+  const careLogs = todayLogs.filter((log) => log.type === "care" || log.type === "custom");
 
   document.querySelector("#feed-count").textContent = feedLogs.length;
   document.querySelector("#feed-detail").textContent = feedLogs.length ? `${feedLogs.length} little ${feedLogs.length === 1 ? "feed" : "feeds"} so far today` : "Your first feed is ready to log";
@@ -105,14 +107,20 @@ function activityDescription(log) {
   }
   if (log.type === "sleep") return `${log.duration} min`;
   if (log.type === "diaper") return escapeHTML(log.changeType || "Diaper changed");
+  if (log.type === "custom") return "Custom log";
   return "Care moment";
 }
 
 function renderActivity() {
   const filter = document.querySelector("#activity-filter").value;
+  document.querySelectorAll("[data-activity-filter]").forEach((card) => {
+    card.setAttribute("aria-pressed", String(card.dataset.activityFilter === filter));
+  });
   const todayKey = localDateKey(new Date());
   const matchingLogs = logs
-    .filter((log) => filter === "all" || log.type === filter)
+    .filter((log) => filter === "all"
+      || log.type === filter
+      || (filter.startsWith("custom:") && log.type === "custom" && log.careLabel === filter.slice("custom:".length)))
     .sort((a, b) => new Date(b.time) - new Date(a.time));
   const todayLogs = matchingLogs.filter((log) => localDateKey(new Date(log.time)) === todayKey);
   const olderLogs = matchingLogs.filter((log) => localDateKey(new Date(log.time)) !== todayKey);
@@ -120,7 +128,8 @@ function renderActivity() {
 
   if (!matchingLogs.length) {
     const filtered = filter !== "all";
-    activityList.innerHTML = `<div class="activity-empty"><span class="empty-icon">${icons[filtered ? filter : "care"]}</span><strong>${filtered ? `No ${labels[filter].toLowerCase()} logs yet` : "Your day begins with a little moment"}</strong><p>${filtered ? "When you add one, you'll find it here." : "Add a feed, nap, diaper change, or care moment to start your baby's timeline."}</p></div>`;
+    const filterLabel = filter.startsWith("custom:") ? filter.slice("custom:".length) : labels[filter];
+    activityList.innerHTML = `<div class="activity-empty"><span class="empty-icon">${icons[filter] || icons.care}</span><strong>${filtered ? `No ${escapeHTML((filterLabel || "care").toLowerCase())} logs yet` : "Your day begins with a little moment"}</strong><p>${filtered ? "When you add one, you'll find it here." : "Add a feed, nap, diaper change, or care moment to start your baby's timeline."}</p></div>`;
     return;
   }
 
@@ -144,7 +153,7 @@ function renderActivityItem(log) {
   const note = log.note ? ` · ${escapeHTML(log.note)}` : "";
   const label = log.label || labels[log.type] || "Care";
   return `<article class="activity-item">
-    <span class="activity-type-icon ${log.type}">${icons[log.type]}</span>
+    <span class="activity-type-icon ${log.type}">${icons[log.type] || icons.care}</span>
     <span class="activity-copy"><strong>${escapeHTML(label)}</strong><small>${activityDescription(log)}${note}</small></span>
     <span class="activity-meta"><time class="activity-time" datetime="${escapeHTML(when.toISOString())}">${formatTime(when)}</time><button class="delete-log" type="button" data-delete-log="${escapeHTML(log.id)}" aria-label="Delete ${escapeHTML(label)} log">${trashIcon()}</button></span>
   </article>`;
@@ -156,16 +165,88 @@ function trashIcon() {
 
 function renderDynamicFields(type) {
   if (type === "feed") {
-    dynamicFields.innerHTML = `<div class="form-field"><label for="feed-method">Feeding type</label><select id="feed-method" name="method"><option>Breastfeeding</option><option>Bottle</option><option>Solids</option></select></div>
-      <div class="form-row"><div class="form-field"><label for="feed-amount">Amount <span class="optional">(ml)</span></label><input id="feed-amount" name="amount" type="number" min="0" max="2000" step="1" placeholder="Optional" /></div><div class="form-field"><label for="feed-duration">Duration <span class="optional">(min)</span></label><input id="feed-duration" name="duration" type="number" min="0" max="600" step="1" placeholder="Optional" /></div></div>`;
+    dynamicFields.innerHTML = `<div class="form-field"><span class="form-field-label" id="feed-method-label">Feeding type</span><input id="feed-method" name="method" type="hidden" value="Breastfeeding" /><div class="feed-method-options" role="group" aria-labelledby="feed-method-label">
+        <button class="feed-method-option" type="button" data-feed-method="Breastfeeding" aria-pressed="true">Breastfeeding</button>
+        <button class="feed-method-option" type="button" data-feed-method="Bottle" aria-pressed="false">Bottle</button>
+        <button class="feed-method-option" type="button" data-feed-method="Solids" aria-pressed="false">Solids</button>
+      </div></div>
+      <div class="form-row"><div class="form-field"><span class="form-field-label" id="feed-amount-label">Amount <span class="optional">(ml)</span></span><input id="feed-amount-preset" name="amountPreset" type="hidden" value="" /><div class="feed-amount-options" role="group" aria-labelledby="feed-amount-label">
+        <button class="feed-amount-option" type="button" data-feed-amount="10" aria-pressed="false">10</button>
+        <button class="feed-amount-option" type="button" data-feed-amount="20" aria-pressed="false">20</button>
+        <button class="feed-amount-option" type="button" data-feed-amount="30" aria-pressed="false">30</button>
+        <button class="feed-amount-option" type="button" data-feed-amount="40" aria-pressed="false">40</button>
+        <button class="feed-amount-option" type="button" data-feed-amount="50" aria-pressed="false">50</button>
+        <button class="feed-amount-option" type="button" data-feed-amount="60" aria-pressed="false">60</button>
+        <button class="feed-amount-option" type="button" data-feed-amount="other" aria-pressed="false">Other</button>
+      </div><div class="form-field" id="feed-custom-amount-field" hidden><label for="feed-custom-amount">Enter amount <span class="optional">(ml)</span></label><input id="feed-custom-amount" name="amountCustom" type="number" min="0" max="2000" step="1" disabled /></div></div><div class="form-field"><label for="feed-duration">Duration <span class="optional">(min)</span></label><input id="feed-duration" name="duration" type="number" min="0" max="600" step="1" placeholder="Optional" /></div></div>`;
+    const methodInput = document.querySelector("#feed-method");
+    dynamicFields.querySelectorAll("[data-feed-method]").forEach((button) => {
+      button.addEventListener("click", () => {
+        methodInput.value = button.dataset.feedMethod;
+        dynamicFields.querySelectorAll("[data-feed-method]").forEach((option) => {
+          option.setAttribute("aria-pressed", String(option === button));
+        });
+      });
+    });
+    const amountPreset = document.querySelector("#feed-amount-preset");
+    const customAmountField = document.querySelector("#feed-custom-amount-field");
+    const customAmountInput = document.querySelector("#feed-custom-amount");
+    dynamicFields.querySelectorAll("[data-feed-amount]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const isOther = button.dataset.feedAmount === "other";
+        amountPreset.value = isOther ? "" : button.dataset.feedAmount;
+        customAmountField.hidden = !isOther;
+        customAmountInput.disabled = !isOther;
+        if (!isOther) customAmountInput.value = "";
+        dynamicFields.querySelectorAll("[data-feed-amount]").forEach((option) => {
+          option.setAttribute("aria-pressed", String(option === button));
+        });
+        if (isOther) customAmountInput.focus();
+      });
+    });
   } else if (type === "sleep") {
     const end = new Date();
     const start = new Date(end.getTime() - 45 * 60 * 1000);
     dynamicFields.innerHTML = `<div class="form-row"><div class="form-field"><label for="sleep-start">Started</label><input id="sleep-start" name="sleepStart" type="datetime-local" value="${dateTimeValue(start)}" required /></div><div class="form-field"><label for="sleep-end">Woke up</label><input id="sleep-end" name="sleepEnd" type="datetime-local" value="${dateTimeValue(end)}" required /></div></div><p class="form-hint">We'll work out the nap length from these times.</p>`;
   } else if (type === "diaper") {
     dynamicFields.innerHTML = `<div class="form-field"><label for="diaper-type">Change type</label><select id="diaper-type" name="changeType"><option>Wet</option><option>Dirty</option><option>Wet &amp; dirty</option><option>Dry</option></select></div>`;
+  } else if (type.startsWith("custom:")) {
+    const name = type.slice("custom:".length);
+    dynamicFields.innerHTML = `<div class="form-field"><span class="form-field-label">${escapeHTML(name)}</span><p class="form-hint">Add the time and any details you'd like to remember.</p></div>`;
   } else {
     dynamicFields.innerHTML = `<div class="form-field"><label for="care-label">Care moment</label><input id="care-label" name="label" maxlength="60" placeholder="e.g. Bath, tummy time, medicine" required /></div>`;
+  }
+}
+
+function updateLogTypeOptions() {
+  const selectedLogType = typeSelect.value;
+  typeSelect.querySelectorAll("[data-custom-log-type]").forEach((option) => option.remove());
+  document.querySelectorAll("#activity-filter [data-custom-log-type]").forEach((option) => option.remove());
+  document.querySelectorAll("#quick-actions [data-custom-log-type]").forEach((button) => button.remove());
+  for (const name of profile.customLogTypes) {
+    const value = `custom:${name}`;
+    const logOption = document.createElement("option");
+    logOption.value = value;
+    logOption.textContent = name;
+    logOption.dataset.customLogType = "";
+    typeSelect.append(logOption);
+
+    const filterOption = document.createElement("option");
+    filterOption.value = value;
+    filterOption.textContent = name;
+    filterOption.dataset.customLogType = "";
+    document.querySelector("#activity-filter").append(filterOption);
+
+    const quickAction = document.createElement("button");
+    quickAction.type = "button";
+    quickAction.className = "quick-action custom-quick-action";
+    quickAction.dataset.logType = value;
+    quickAction.dataset.customLogType = "";
+    quickAction.innerHTML = `<span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span><span><strong>${escapeHTML(name)}</strong><small>Log a moment</small></span><span class="quick-plus" aria-hidden="true">+</span>`;
+    document.querySelector("#quick-actions").append(quickAction);
+  }
+  if ([...typeSelect.options].some((option) => option.value === selectedLogType)) {
+    typeSelect.value = selectedLogType;
   }
 }
 
@@ -236,6 +317,7 @@ function mapDatabaseLog(row) {
   if (log.type === "feed") log.label = `${log.method || "Feeding"} feed`;
   else if (log.type === "sleep") log.label = "Nap";
   else if (log.type === "diaper") log.label = `${log.changeType || "Changed"} diaper`;
+  else if (log.type === "custom") log.label = log.careLabel || "Custom log";
   else log.label = log.careLabel || "Care moment";
   return log;
 }
@@ -250,14 +332,14 @@ function toDatabaseLog(log) {
     amount_ml: log.type === "feed" && log.amount ? log.amount : null,
     duration_minutes: (log.type === "feed" || log.type === "sleep") && log.duration ? log.duration : null,
     change_type: log.type === "diaper" ? log.changeType : null,
-    care_label: log.type === "care" ? log.label : null,
+    care_label: log.type === "care" || log.type === "custom" ? log.label : null,
   };
 }
 
 async function loadBabyProfile(userId) {
   const { data: existingProfile, error: selectError } = await supabase
     .from("baby_profiles")
-    .select("id, name, birthday")
+    .select("id, name, birthday, custom_log_types")
     .eq("user_id", userId)
     .maybeSingle();
   if (selectError) throw new Error(databaseError(selectError, "Loading baby profile"));
@@ -266,7 +348,7 @@ async function loadBabyProfile(userId) {
   const { data: newProfile, error: insertError } = await supabase
     .from("baby_profiles")
     .insert({ user_id: userId, name: "Krish" })
-    .select("id, name, birthday")
+    .select("id, name, birthday, custom_log_types")
     .single();
   if (insertError) throw new Error(databaseError(insertError, "Creating baby profile"));
   return newProfile;
@@ -295,7 +377,7 @@ async function initializeAccount(user) {
   currentUserId = user.id;
   loadingUserId = user.id;
   logs = [];
-  profile = { id: null, name: "Krish", birthday: "" };
+  profile = { id: null, name: "Krish", birthday: "", customLogTypes: [] };
   document.querySelector("#auth-screen").hidden = true;
   document.querySelector("#app-shell").hidden = false;
   document.querySelector("#activity-list").innerHTML = '<div class="activity-empty"><strong>Loading your little one\'s day…</strong></div>';
@@ -303,7 +385,13 @@ async function initializeAccount(user) {
   try {
     const profileRow = await loadBabyProfile(user.id);
     if (currentUserId !== user.id) return;
-    profile = { id: profileRow.id, name: profileRow.name, birthday: profileRow.birthday || "" };
+    profile = {
+      id: profileRow.id,
+      name: profileRow.name,
+      birthday: profileRow.birthday || "",
+      customLogTypes: profileRow.custom_log_types || [],
+    };
+    updateLogTypeOptions();
     updateProfileLabels();
     await loadLogs();
   } catch (error) {
@@ -320,7 +408,7 @@ async function handleSession(session) {
     currentUserId = null;
     loadingUserId = null;
     logs = [];
-    profile = { id: null, name: "Krish", birthday: "" };
+    profile = { id: null, name: "Krish", birthday: "", customLogTypes: [] };
     for (const dialog of [logDialog, profileDialog, passwordDialog]) {
       if (dialog.open) dialog.close();
     }
@@ -337,13 +425,19 @@ async function refreshAccountData() {
   try {
     const { data, error } = await supabase
       .from("baby_profiles")
-      .select("id, name, birthday")
+      .select("id, name, birthday, custom_log_types")
       .eq("user_id", currentUserId)
       .maybeSingle();
     if (error) throw new Error(databaseError(error, "Refreshing baby profile"));
     if (data && data.id === profile.id) {
-      profile = { id: data.id, name: data.name, birthday: data.birthday || "" };
+      profile = {
+        id: data.id,
+        name: data.name,
+        birthday: data.birthday || "",
+        customLogTypes: data.custom_log_types || [],
+      };
       updateProfileLabels();
+      updateLogTypeOptions();
     }
     await loadLogs();
     setSyncError("");
@@ -443,10 +537,31 @@ document.querySelector("#sign-out-button").addEventListener("click", signOut);
 document.querySelector("#sign-out-profile").addEventListener("click", signOut);
 
 document.querySelectorAll("[data-open-log]").forEach((button) => button.addEventListener("click", () => openLogDialog()));
-document.querySelectorAll("[data-log-type]").forEach((button) => button.addEventListener("click", () => openLogDialog(button.dataset.logType)));
+document.querySelector("#quick-actions").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-log-type]");
+  if (button) openLogDialog(button.dataset.logType);
+});
 document.querySelectorAll("[data-close-dialog]").forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
 typeSelect.addEventListener("change", () => renderDynamicFields(typeSelect.value));
-document.querySelector("#activity-filter").addEventListener("change", renderActivity);
+const activityFilter = document.querySelector("#activity-filter");
+const activityPanel = document.querySelector("#activity");
+activityFilter.addEventListener("change", renderActivity);
+
+function showActivityCategory(filter) {
+  activityFilter.value = filter;
+  renderActivity();
+  activityPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+document.querySelectorAll("[data-activity-filter]").forEach((card) => {
+  card.addEventListener("click", () => showActivityCategory(card.dataset.activityFilter));
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      showActivityCategory(card.dataset.activityFilter);
+    }
+  });
+});
 
 function updateNavigation(activeHref = location.hash === "#activity" ? "#activity" : "#today") {
   document.querySelectorAll(".nav-link").forEach((link) => {
@@ -464,7 +579,9 @@ window.addEventListener("hashchange", () => updateNavigation());
 logForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = new FormData(logForm);
-  const type = String(data.get("type"));
+  const selectedType = String(data.get("type"));
+  const customLabel = selectedType.startsWith("custom:") ? selectedType.slice("custom:".length) : "";
+  const type = customLabel ? "custom" : selectedType;
   const time = new Date(String(data.get("time")));
   const formError = document.querySelector("#form-error");
   const saveButton = logForm.querySelector('button[type="submit"]');
@@ -486,7 +603,8 @@ logForm.addEventListener("submit", async (event) => {
 
   if (type === "feed") {
     entry.method = String(data.get("method"));
-    entry.amount = data.get("amount") ? Number(data.get("amount")) : 0;
+    const amount = data.get("amountPreset") || data.get("amountCustom");
+    entry.amount = amount ? Number(amount) : 0;
     entry.duration = data.get("duration") ? Number(data.get("duration")) : 0;
     entry.label = `${entry.method} feed`;
   } else if (type === "sleep") {
@@ -507,6 +625,8 @@ logForm.addEventListener("submit", async (event) => {
   } else if (type === "diaper") {
     entry.changeType = String(data.get("changeType"));
     entry.label = `${entry.changeType} diaper`;
+  } else if (type === "custom") {
+    entry.label = customLabel;
   } else {
     entry.label = String(data.get("label") || "").trim();
   }
@@ -556,7 +676,7 @@ activityList.addEventListener("click", async (event) => {
 });
 
 document.querySelector("#clear-logs-button").addEventListener("click", async () => {
-  if (!logs.length || !profile.id || !window.confirm("Remove all feeding, sleep, diaper, and care logs from your account?")) return;
+  if (!logs.length || !profile.id || !window.confirm("Remove all feeding, sleep, diaper, care, and custom logs from your account?")) return;
   const clearButton = document.querySelector("#clear-logs-button");
   clearButton.disabled = true;
   try {
@@ -576,11 +696,57 @@ function openProfileDialog() {
   document.querySelector("#profile-error").textContent = "";
   document.querySelector("#baby-name").value = profile.name;
   document.querySelector("#baby-birthday").value = profile.birthday;
+  draftCustomLogTypes = [...profile.customLogTypes];
+  renderCustomLogTypes();
   profileDialog.showModal();
   document.querySelector("#baby-name").focus();
 }
 document.querySelector("#profile-button").addEventListener("click", openProfileDialog);
 document.querySelector("#profile-button-mobile").addEventListener("click", openProfileDialog);
+
+function renderCustomLogTypes() {
+  const list = document.querySelector("#custom-log-type-list");
+  list.innerHTML = draftCustomLogTypes.length
+    ? draftCustomLogTypes.map((name, index) => `<li><span>${escapeHTML(name)}</span><button class="text-button" type="button" data-remove-custom-log="${index}" aria-label="Remove ${escapeHTML(name)} log option">Remove</button></li>`).join("")
+    : '<li class="custom-log-type-empty">No custom log options yet.</li>';
+}
+
+document.querySelector("#add-custom-log-type").addEventListener("click", () => {
+  const input = document.querySelector("#new-custom-log-type");
+  const error = document.querySelector("#custom-log-type-error");
+  const name = input.value.trim();
+  error.textContent = "";
+  if (!name) {
+    error.textContent = "Enter a name for this log option.";
+  } else if (name.length > 60) {
+    error.textContent = "Log option names must be 60 characters or fewer.";
+  } else if (["feeding", "sleep", "diaper", "diaper change", "other care"].includes(name.toLocaleLowerCase())) {
+    error.textContent = "That name is already used by a built-in log option.";
+  } else if (draftCustomLogTypes.some((existing) => existing.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+    error.textContent = "That custom log option already exists.";
+  } else if (draftCustomLogTypes.length >= maxCustomLogTypes) {
+    error.textContent = `You can add up to ${maxCustomLogTypes} custom log options.`;
+  } else {
+    draftCustomLogTypes.push(name);
+    input.value = "";
+    renderCustomLogTypes();
+    input.focus();
+  }
+});
+
+document.querySelector("#new-custom-log-type").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    document.querySelector("#add-custom-log-type").click();
+  }
+});
+
+document.querySelector("#custom-log-type-list").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-remove-custom-log]");
+  if (!button) return;
+  draftCustomLogTypes.splice(Number(button.dataset.removeCustomLog), 1);
+  renderCustomLogTypes();
+});
 
 document.querySelector("#profile-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -596,13 +762,20 @@ document.querySelector("#profile-form").addEventListener("submit", async (event)
   try {
     const { data, error } = await supabase
       .from("baby_profiles")
-      .update({ name, birthday: birthday || null })
+      .update({ name, birthday: birthday || null, custom_log_types: draftCustomLogTypes })
       .eq("id", profile.id)
-      .select("id, name, birthday")
+      .select("id, name, birthday, custom_log_types")
       .single();
     if (error) throw error;
-    profile = { id: data.id, name: data.name, birthday: data.birthday || "" };
+    profile = {
+      id: data.id,
+      name: data.name,
+      birthday: data.birthday || "",
+      customLogTypes: data.custom_log_types || [],
+    };
     updateProfileLabels();
+    updateLogTypeOptions();
+    renderDashboard();
     profileDialog.close();
     showToast("Baby profile saved");
   } catch (error) {

@@ -15,12 +15,14 @@ The local Supabase settings are in `.env.local` (ignored by Git). `.env.producti
 ## Initialize Supabase
 
 1. In the Supabase dashboard for this project, open **SQL Editor**.
-2. Run [`supabase/migrations/20261103000000_initial_schema.sql`](./supabase/migrations/20261103000000_initial_schema.sql). It creates the baby profile and care-log tables, enables row-level security, and restricts access to the signed-in owner.
+2. Run [`supabase/migrations/20261103000000_initial_schema.sql`](./supabase/migrations/20261103000000_initial_schema.sql), then [`supabase/migrations/20261103000001_custom_log_types.sql`](./supabase/migrations/20261103000001_custom_log_types.sql). They create the baby profile and care-log tables, enable row-level security, and support profile-specific custom log options.
 3. Under **Authentication → Providers**, enable Email/password sign-in. Email confirmation can remain enabled.
 4. Under **Authentication → URL Configuration**, set the Site URL to `https://salaarkrish8055.github.io/babytracking/` and add these Redirect URLs:
    - `https://salaarkrish8055.github.io/babytracking/`
    - `http://localhost:5173/` (for local development)
 5. Confirm the app's Supabase URL and public publishable key in `.env.production`. The same public key is embedded in the browser build; this is expected. Do not use a secret/service-role key.
+
+Existing deployments should run the custom-log migration in the SQL Editor before using the updated app.
 
 Each account gets a private baby profile. Caregivers who need access should use the same account for now; separate-account caregiver invitations are not enabled.
 
