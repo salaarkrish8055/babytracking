@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f8fc" />
+    <meta name="description" content="A calm, simple place to keep track of your baby's daily care." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Krish Baby" />
+    <title>Krish Baby — Daily care, made simple</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <main class="auth-screen" id="auth-screen" hidden>
+      <section class="auth-card" aria-labelledby="auth-title">
+        <a class="brand auth-brand" href="./" aria-label="Krish Baby home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none"><path d="M16 27s-11-6.1-11-14a6.1 6.1 0 0 1 11-3.7A6.1 6.1 0 0 1 27 13c0 7.9-11 14-11 14Z" fill="currentColor"/><circle cx="16" cy="16" r="3" fill="#fff"/></svg>
+          </span>
+          <span class="brand-name">krish<span>baby</span></span>
+        </a>
+        <p class="eyebrow"><span class="status-dot"></span> A LITTLE SPACE FOR YOUR FAMILY</p>
+        <h1 id="auth-title">Welcome back.</h1>
+        <p class="auth-description" id="auth-description">Sign in to see your baby's day, wherever you are.</p>
+        <form id="auth-form">
+          <div class="form-field">
+            <label for="auth-email">Email address</label>
+            <input id="auth-email" name="email" type="email" autocomplete="email" required />
+          </div>
+          <div class="form-field">
+            <label for="auth-password">Password</label>
+            <input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" required />
+          </div>
+          <div class="form-error auth-message" id="auth-message" role="status" aria-live="polite"></div>
+          <button class="button button-primary auth-submit" id="auth-submit" type="submit">Sign in</button>
+        </form>
+        <p class="auth-switch"><span id="auth-switch-copy">New to Krish Baby?</span> <button type="button" id="auth-mode-toggle">Create an account</button></p>
+        <button class="auth-reset" id="password-reset" type="button">Forgot your password?</button>
+        <button class="install-button auth-install-button" id="auth-install-button" type="button">Install app</button>
+        <p class="auth-config-warning" id="auth-config-warning" hidden>Supabase is not configured for this build. Add the project URL and public publishable key to the app configuration, then reload.</p>
+        <p class="auth-privacy">Your account is private. Only you can access your baby's data.</p>
+      </section>
+    </main>
+    <div class="app-shell" id="app-shell" hidden>
+      <aside class="sidebar" aria-label="Main navigation">
+        <a class="brand" href="#today" aria-label="Krish Baby home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none"><path d="M16 27s-11-6.1-11-14a6.1 6.1 0 0 1 11-3.7A6.1 6.1 0 0 1 27 13c0 7.9-11 14-11 14Z" fill="currentColor"/><circle cx="16" cy="16" r="3" fill="#fff"/></svg>
+          </span>
+          <span class="brand-name">krish<span>baby</span></span>
+        </a>
+
+        <div class="sidebar-label">YOUR SPACE</div>
+        <nav class="nav-links">
+          <a class="nav-link active" href="#today" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/></svg>
+            <span>Today</span>
+          </a>
+          <a class="nav-link" href="#activity">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16M4 12h16M4 18.5h10"/><circle cx="7" cy="5.5" r="1"/><circle cx="15" cy="12" r="1"/></svg>
+            <span>Activity history</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="privacy-card">
+            <span class="privacy-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3.5 19 6v5.6c0 4.3-2.9 7.6-7 9.2-4.1-1.6-7-4.9-7-9.2V6l7-2.5Z"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            <strong>Your family's space</strong>
+            <p>Private and synced to your account.</p>
+          </div>
+          <button class="profile-button" id="profile-button" type="button">
+            <span class="avatar" id="sidebar-avatar">K</span>
+            <span class="profile-copy"><strong id="sidebar-baby-name">Krish</strong><small>Baby profile</small></span>
+            <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </aside>
+
+      <main class="main-content" id="today">
+        <header class="topbar">
+          <div class="breadcrumb"><span>My family</span><span class="breadcrumb-slash">/</span><strong>Today</strong></div>
+          <div class="topbar-actions">
+            <span class="today-date" id="header-date"></span>
+            <button class="install-button" id="install-button" type="button">Install app</button>
+            <button class="sign-out-button" id="sign-out-button" type="button">Sign out</button>
+            <button class="icon-button profile-mobile" id="profile-button-mobile" type="button" aria-label="Edit baby profile">
+              <span class="avatar small-avatar" id="mobile-avatar">K</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="page-content">
+          <div class="sync-error" id="sync-error" role="alert" hidden>
+            <span id="sync-error-text"></span>
+            <button type="button" class="sync-retry" id="sync-retry">Try again</button>
+          </div>
+          <section class="welcome-row">
+            <div>
+              <p class="eyebrow"><span class="status-dot"></span> YOUR LITTLE ONE'S DAY</p>
+              <h1>Every little moment <span>matters.</span></h1>
+              <p class="welcome-subtitle">A gentle snapshot of <strong id="welcome-baby-name">Krish</strong>'s day, all in one place.</p>
+            </div>
+            <button class="button button-primary add-log-top" type="button" data-open-log>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Add a log</span>
+            </button>
+          </section>
+
+          <section class="quick-actions" aria-label="Quick log">
+            <button type="button" class="quick-action feed-action" data-log-type="feed">
+              <span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h8l1 15H7L8 5Z"/><path d="M9 5V3h6v2M8 9h8"/><path d="M11 13h2"/></svg></span>
+              <span><strong>Feeding</strong><small>Log a feed</small></span>
+              <span class="quick-plus" aria-hidden="true">+</span>
+            </button>
+            <button type="button" class="quick-action sleep-action" data-log-type="sleep">
+              <span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.8A8 8 0 0 1 9.2 4.5a8.2 8.2 0 1 0 10.3 10.3Z"/><path d="m17.5 4 .5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5.5-1.5Z"/></svg></span>
+              <span><strong>Sleep</strong><small>Log a nap</small></span>
+              <span class="quick-plus" aria-hidden="true">+</span>
+            </button>
+            <button type="button" class="quick-action diaper-action" data-log-type="diaper">
+              <span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14l-1.2 10a2 2 0 0 1-2 1.7H8.2a2 2 0 0 1-2-1.7L5 7.5Z"/><path d="M5 8 3.5 5.5M19 8l1.5-2.5M9 13c1.2 1.1 1.2 2.3 0 3.4M15 13c-1.2 1.1-1.2 2.3 0 3.4"/></svg></span>
+              <span><strong>Diaper</strong><small>Log a change</small></span>
+              <span class="quick-plus" aria-hidden="true">+</span>
+            </button>
+            <button type="button" class="quick-action care-action" data-log-type="care">
+              <span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.2-7.5-9.7A4.2 4.2 0 0 1 12 7.8a4.2 4.2 0 0 1 7.5 2.5C19.5 15.8 12 20 12 20Z"/><path d="M12 10v5M9.5 12.5h5"/></svg></span>
+              <span><strong>Other care</strong><small>Log a moment</small></span>
+              <span class="quick-plus" aria-hidden="true">+</span>
+            </button>
+          </section>
+
+          <section class="section-heading">
+            <div>
+              <p class="eyebrow">A LITTLE CHECK-IN</p>
+              <h2>Today's overview</h2>
+            </div>
+            <span class="date-pill" id="today-pill"></span>
+          </section>
+
+          <section class="stats-grid" aria-label="Today's totals">
+            <article class="stat-card feeding-stat">
+              <div class="stat-card-top"><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h8l1 15H7L8 5Z"/><path d="M9 5V3h6v2M8 9h8"/></svg></span><span class="stat-label">FEEDINGS</span></div>
+              <div class="stat-value"><strong id="feed-count">0</strong><span>feeds</span></div>
+              <p class="stat-detail" id="feed-detail">Your first feed is ready to log</p>
+              <div class="stat-progress"><span id="feed-progress"></span></div>
+            </article>
+            <article class="stat-card sleep-stat">
+              <div class="stat-card-top"><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.8A8 8 0 0 1 9.2 4.5a8.2 8.2 0 1 0 10.3 10.3Z"/></svg></span><span class="stat-label">SLEEP</span></div>
+              <div class="stat-value"><strong id="sleep-total">0h 0m</strong></div>
+              <p class="stat-detail" id="sleep-detail">Little rests add up</p>
+              <div class="stat-progress"><span id="sleep-progress"></span></div>
+            </article>
+            <article class="stat-card diaper-stat">
+              <div class="stat-card-top"><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14l-1.2 10a2 2 0 0 1-2 1.7H8.2a2 2 0 0 1-2-1.7L5 7.5Z"/><path d="M5 8 3.5 5.5M19 8l1.5-2.5"/></svg></span><span class="stat-label">DIAPER CHANGES</span></div>
+              <div class="stat-value"><strong id="diaper-count">0</strong><span>changes</span></div>
+              <p class="stat-detail" id="diaper-detail">Every change, captured</p>
+              <div class="stat-progress"><span id="diaper-progress"></span></div>
+            </article>
+            <article class="stat-card care-stat">
+              <div class="stat-card-top"><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.2-7.5-9.7A4.2 4.2 0 0 1 12 7.8a4.2 4.2 0 0 1 7.5 2.5C19.5 15.8 12 20 12 20Z"/><path d="M12 10v5M9.5 12.5h5"/></svg></span><span class="stat-label">OTHER MOMENTS</span></div>
+              <div class="stat-value"><strong id="care-count">0</strong><span>logged</span></div>
+              <p class="stat-detail" id="care-detail">The little things matter, too</p>
+              <div class="stat-progress"><span id="care-progress"></span></div>
+            </article>
+          </section>
+
+          <section class="activity-panel" id="activity">
+            <div class="activity-heading">
+              <div>
+                <p class="eyebrow">THE STORY OF TODAY</p>
+                <h2>Recent activity</h2>
+              </div>
+              <div class="activity-controls">
+                <label class="sr-only" for="activity-filter">Filter activity</label>
+                <select id="activity-filter" class="filter-select">
+                  <option value="all">All activity</option>
+                  <option value="feed">Feeding</option>
+                  <option value="sleep">Sleep</option>
+                  <option value="diaper">Diaper</option>
+                  <option value="care">Other care</option>
+                </select>
+                <button type="button" class="text-button" id="clear-logs-button" hidden>Clear all</button>
+              </div>
+            </div>
+            <div id="activity-list" class="activity-list" aria-live="polite"></div>
+          </section>
+
+          <footer class="page-footer">
+            <span>Made for the moments that matter <span aria-hidden="true">♡</span></span>
+            <span>Private by design · Securely synced</span>
+          </footer>
+        </div>
+      </main>
+    </div>
+
+    <dialog class="modal" id="log-dialog" aria-labelledby="log-title">
+      <form id="log-form" method="dialog">
+        <div class="modal-header">
+          <div><p class="eyebrow">A MOMENT TO REMEMBER</p><h2 id="log-title">Add a log</h2></div>
+          <button class="icon-button close-button" type="button" data-close-dialog aria-label="Close dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        </div>
+        <div class="form-field">
+          <label for="log-type">What would you like to log?</label>
+          <select id="log-type" name="type">
+            <option value="feed">Feeding</option><option value="sleep">Sleep</option><option value="diaper">Diaper change</option><option value="care">Other care</option>
+          </select>
+        </div>
+        <div id="dynamic-fields"></div>
+        <div class="form-field" id="log-time-field">
+          <label for="log-time">When?</label>
+          <input id="log-time" name="time" type="datetime-local" required />
+        </div>
+        <div class="form-field">
+          <label for="log-notes">A note <span class="optional">(optional)</span></label>
+          <textarea id="log-notes" name="notes" rows="2" maxlength="1000" placeholder="Anything you'd like to remember?"></textarea>
+        </div>
+        <div class="form-error" id="form-error" role="alert"></div>
+        <div class="modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save this moment</button></div>
+      </form>
+    </dialog>
+
+    <dialog class="modal profile-modal" id="profile-dialog" aria-labelledby="profile-title">
+      <form id="profile-form" method="dialog">
+        <div class="modal-header">
+          <div><p class="eyebrow">YOUR LITTLE ONE</p><h2 id="profile-title">Baby profile</h2></div>
+          <button class="icon-button close-button" type="button" data-close-dialog aria-label="Close dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        </div>
+        <div class="form-field"><label for="baby-name">Baby's name</label><input id="baby-name" name="babyName" maxlength="40" required /></div>
+        <div class="form-field"><label for="baby-birthday">Birthday <span class="optional">(optional)</span></label><input id="baby-birthday" name="birthday" type="date" /></div>
+        <div class="form-error" id="profile-error" role="alert"></div>
+        <div class="modal-actions profile-modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-secondary" id="sign-out-profile" type="button">Sign out</button><button class="button button-primary" type="submit">Save profile</button></div>
+      </form>
+    </dialog>
+    <dialog class="modal" id="password-dialog" aria-labelledby="password-title">
+      <form id="password-form">
+        <div class="modal-header">
+          <div><p class="eyebrow">ACCOUNT SECURITY</p><h2 id="password-title">Choose a new password</h2></div>
+        </div>
+        <div class="form-field"><label for="new-password">New password</label><input id="new-password" name="password" type="password" autocomplete="new-password" minlength="8" required /></div>
+        <div class="form-field"><label for="confirm-password">Confirm password</label><input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /></div>
+        <div class="form-error" id="password-error" role="alert"></div>
+        <div class="modal-actions"><button class="button button-primary" type="submit">Update password</button></div>
+      </form>
+    </dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
