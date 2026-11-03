@@ -18,21 +18,27 @@ const maxCustomLogTypes = 12;
 const logDialog = document.querySelector("#log-dialog");
 const profileDialog = document.querySelector("#profile-dialog");
 const passwordDialog = document.querySelector("#password-dialog");
+const clearLogsDialog = document.querySelector("#clear-logs-dialog");
 const logForm = document.querySelector("#log-form");
 const typeSelect = document.querySelector("#log-type");
 const dynamicFields = document.querySelector("#dynamic-fields");
 const activityList = document.querySelector("#activity-list");
+const quickActions = document.querySelector("#quick-actions");
 const toast = document.querySelector("#toast");
 
 let logs = [];
-let profile = { id: null, name: "Krish", birthday: "", customLogTypes: [] };
+let profile = { id: null, name: "Krish", birthday: "", customLogTypes: [], quickLogOrder: [] };
 let draftCustomLogTypes = [];
+let draftQuickLogOrder = [];
 let currentUserId = null;
 let authMode = "signin";
 let toastTimeout;
 let deferredInstallPrompt;
 let refreshInProgress = false;
 let loadingUserId = null;
+let draggedQuickLogType = null;
+let draggedProfileOrderType = null;
+let quickLogOrderSaveInProgress = false;
 
 function localDateKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -78,7 +84,7 @@ function renderDashboard() {
   const feedLogs = todayLogs.filter((log) => log.type === "feed");
   const sleepMinutes = todayLogs.filter((log) => log.type === "sleep").reduce((total, log) => total + (Number(log.duration) || 0), 0);
   const diaperLogs = todayLogs.filter((log) => log.type === "diaper");
-  const careLogs = todayLogs.filter((log) => log.type === "care" || log.type === "custom");
+  const careLogs = todayLogs.filter((log) => log.type === "care");
 
   document.querySelector("#feed-count").textContent = feedLogs.length;
   document.querySelector("#feed-detail").textContent = feedLogs.length ? `${feedLogs.length} little ${feedLogs.length === 1 ? "feed" : "feeds"} so far today` : "Your first feed is ready to log";
@@ -93,7 +99,29 @@ function renderDashboard() {
   setProgress("#sleep-progress", sleepMinutes, 720);
   setProgress("#diaper-progress", diaperLogs.length, 10);
   setProgress("#care-progress", careLogs.length, 5);
+  renderCustomOverviewCards(todayLogs);
   renderActivity();
+}
+
+function renderCustomOverviewCards(todayLogs) {
+  const statsGrid = document.querySelector(".stats-grid");
+  statsGrid.querySelectorAll("[data-custom-overview]").forEach((card) => card.remove());
+  for (const name of profile.customLogTypes) {
+    const count = todayLogs.filter((log) => log.type === "custom" && log.careLabel === name).length;
+    const card = document.createElement("article");
+    card.className = "stat-card custom-stat-card";
+    card.dataset.activityFilter = `custom:${name}`;
+    card.dataset.customOverview = "";
+    card.setAttribute("role", "button");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("aria-pressed", "false");
+    card.setAttribute("aria-label", `View ${name} logs`);
+    card.innerHTML = `<div class="stat-card-top"><span class="stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span><span class="stat-label">${escapeHTML(name)}</span></div>
+      <div class="stat-value"><strong>${count}</strong><span>logged</span></div>
+      <p class="stat-detail">${count ? `${count} ${count === 1 ? "entry" : "entries"} today` : `No ${escapeHTML(name.toLocaleLowerCase())} logs today`}</p>
+      <div class="stat-progress"><span style="width: ${Math.min(100, (count / 5) * 100)}%"></span></div>`;
+    statsGrid.append(card);
+  }
 }
 
 function setProgress(selector, value, target) {
@@ -222,7 +250,7 @@ function updateLogTypeOptions() {
   const selectedLogType = typeSelect.value;
   typeSelect.querySelectorAll("[data-custom-log-type]").forEach((option) => option.remove());
   document.querySelectorAll("#activity-filter [data-custom-log-type]").forEach((option) => option.remove());
-  document.querySelectorAll("#quick-actions [data-custom-log-type]").forEach((button) => button.remove());
+  quickActions.querySelectorAll("[data-custom-log-type]").forEach((button) => button.remove());
   for (const name of profile.customLogTypes) {
     const value = `custom:${name}`;
     const logOption = document.createElement("option");
@@ -243,10 +271,89 @@ function updateLogTypeOptions() {
     quickAction.dataset.logType = value;
     quickAction.dataset.customLogType = "";
     quickAction.innerHTML = `<span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span><span><strong>${escapeHTML(name)}</strong><small>Log a moment</small></span><span class="quick-plus" aria-hidden="true">+</span>`;
-    document.querySelector("#quick-actions").append(quickAction);
+    quickActions.append(quickAction);
   }
+  applyQuickLogOrder(profile.quickLogOrder);
   if ([...typeSelect.options].some((option) => option.value === selectedLogType)) {
     typeSelect.value = selectedLogType;
+  }
+}
+
+function availableQuickLogTypes(customLogTypes = profile.customLogTypes) {
+  return ["feed", "sleep", "diaper", "care", ...customLogTypes.map((name) => `custom:${name}`)];
+}
+
+function normalizeQuickLogOrder(order, customLogTypes = profile.customLogTypes) {
+  const available = availableQuickLogTypes(customLogTypes);
+  const normalized = [];
+  for (const type of Array.isArray(order) ? order : []) {
+    if (available.includes(type) && !normalized.includes(type)) normalized.push(type);
+  }
+  return [...normalized, ...available.filter((type) => !normalized.includes(type))];
+}
+
+function applyQuickLogOrder(order) {
+  const normalized = normalizeQuickLogOrder(order);
+  const orderedCards = [];
+  for (const type of normalized) {
+    const card = [...quickActions.children].find((item) => item.dataset.logType === type);
+    if (card) orderedCards.push(card);
+  }
+  quickActions.replaceChildren(...orderedCards);
+  profile.quickLogOrder = normalized;
+  updateQuickLogCardPositions();
+}
+
+function updateQuickLogCardPositions() {
+  const cards = [...quickActions.children];
+  cards.forEach((card, index) => {
+    card.setAttribute("aria-keyshortcuts", "Alt+ArrowUp Alt+ArrowDown");
+    card.setAttribute("aria-label", `${card.querySelector("strong").textContent}. Press Alt+Up or Alt+Down to change card order.`);
+    card.setAttribute("aria-posinset", String(index + 1));
+    card.setAttribute("aria-setsize", String(cards.length));
+    card.draggable = true;
+  });
+}
+
+function reorderQuickLogCards(fromType, toType, before) {
+  const cards = [...quickActions.children];
+  const fromIndex = cards.findIndex((card) => card.dataset.logType === fromType);
+  const toIndex = cards.findIndex((card) => card.dataset.logType === toType);
+  if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+  const [moved] = cards.splice(fromIndex, 1);
+  const targetIndex = cards.findIndex((card) => card.dataset.logType === toType);
+  cards.splice(targetIndex + (before ? 0 : 1), 0, moved);
+  cards.forEach((card) => quickActions.append(card));
+  updateQuickLogCardPositions();
+}
+
+async function saveQuickLogOrder() {
+  const order = [...quickActions.children].map((card) => card.dataset.logType);
+  if (order.every((type, index) => type === profile.quickLogOrder[index])) return;
+  if (quickLogOrderSaveInProgress) {
+    applyQuickLogOrder(profile.quickLogOrder);
+    showToast("Please wait for the current card order to save.");
+    return;
+  }
+
+  const previousOrder = profile.quickLogOrder;
+  quickLogOrderSaveInProgress = true;
+  try {
+    const { data, error } = await supabase
+      .from("baby_profiles")
+      .update({ quick_log_order: order })
+      .eq("id", profile.id)
+      .select("quick_log_order")
+      .single();
+    if (error) throw error;
+    profile.quickLogOrder = normalizeQuickLogOrder(data.quick_log_order);
+    showToast("Quick log order saved");
+    setSyncError("");
+  } catch (error) {
+    applyQuickLogOrder(previousOrder);
+    setSyncError(databaseError(error, "Saving quick log order"));
+  } finally {
+    quickLogOrderSaveInProgress = false;
   }
 }
 
@@ -339,7 +446,7 @@ function toDatabaseLog(log) {
 async function loadBabyProfile(userId) {
   const { data: existingProfile, error: selectError } = await supabase
     .from("baby_profiles")
-    .select("id, name, birthday, custom_log_types")
+    .select("id, name, birthday, custom_log_types, quick_log_order")
     .eq("user_id", userId)
     .maybeSingle();
   if (selectError) throw new Error(databaseError(selectError, "Loading baby profile"));
@@ -348,7 +455,7 @@ async function loadBabyProfile(userId) {
   const { data: newProfile, error: insertError } = await supabase
     .from("baby_profiles")
     .insert({ user_id: userId, name: "Krish" })
-    .select("id, name, birthday, custom_log_types")
+    .select("id, name, birthday, custom_log_types, quick_log_order")
     .single();
   if (insertError) throw new Error(databaseError(insertError, "Creating baby profile"));
   return newProfile;
@@ -377,7 +484,7 @@ async function initializeAccount(user) {
   currentUserId = user.id;
   loadingUserId = user.id;
   logs = [];
-  profile = { id: null, name: "Krish", birthday: "", customLogTypes: [] };
+  profile = { id: null, name: "Krish", birthday: "", customLogTypes: [], quickLogOrder: [] };
   document.querySelector("#auth-screen").hidden = true;
   document.querySelector("#app-shell").hidden = false;
   document.querySelector("#activity-list").innerHTML = '<div class="activity-empty"><strong>Loading your little one\'s day…</strong></div>';
@@ -390,6 +497,7 @@ async function initializeAccount(user) {
       name: profileRow.name,
       birthday: profileRow.birthday || "",
       customLogTypes: profileRow.custom_log_types || [],
+      quickLogOrder: profileRow.quick_log_order || [],
     };
     updateLogTypeOptions();
     updateProfileLabels();
@@ -408,8 +516,8 @@ async function handleSession(session) {
     currentUserId = null;
     loadingUserId = null;
     logs = [];
-    profile = { id: null, name: "Krish", birthday: "", customLogTypes: [] };
-    for (const dialog of [logDialog, profileDialog, passwordDialog]) {
+    profile = { id: null, name: "Krish", birthday: "", customLogTypes: [], quickLogOrder: [] };
+    for (const dialog of [logDialog, profileDialog, passwordDialog, clearLogsDialog]) {
       if (dialog.open) dialog.close();
     }
     document.querySelector("#app-shell").hidden = true;
@@ -425,7 +533,7 @@ async function refreshAccountData() {
   try {
     const { data, error } = await supabase
       .from("baby_profiles")
-      .select("id, name, birthday, custom_log_types")
+      .select("id, name, birthday, custom_log_types, quick_log_order")
       .eq("user_id", currentUserId)
       .maybeSingle();
     if (error) throw new Error(databaseError(error, "Refreshing baby profile"));
@@ -435,6 +543,7 @@ async function refreshAccountData() {
         name: data.name,
         birthday: data.birthday || "",
         customLogTypes: data.custom_log_types || [],
+        quickLogOrder: data.quick_log_order || [],
       };
       updateProfileLabels();
       updateLogTypeOptions();
@@ -537,9 +646,55 @@ document.querySelector("#sign-out-button").addEventListener("click", signOut);
 document.querySelector("#sign-out-profile").addEventListener("click", signOut);
 
 document.querySelectorAll("[data-open-log]").forEach((button) => button.addEventListener("click", () => openLogDialog()));
-document.querySelector("#quick-actions").addEventListener("click", (event) => {
+quickActions.addEventListener("click", (event) => {
+  if (Date.now() < suppressQuickLogClickUntil) return;
   const button = event.target.closest("[data-log-type]");
   if (button) openLogDialog(button.dataset.logType);
+});
+let suppressQuickLogClickUntil = 0;
+quickActions.addEventListener("dragstart", (event) => {
+  const card = event.target.closest("[data-log-type]");
+  if (!card || quickLogOrderSaveInProgress) {
+    event.preventDefault();
+    return;
+  }
+  draggedQuickLogType = card.dataset.logType;
+  card.classList.add("is-dragging");
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("text/plain", draggedQuickLogType);
+});
+quickActions.addEventListener("dragover", (event) => {
+  if (draggedQuickLogType) event.preventDefault();
+});
+quickActions.addEventListener("drop", (event) => {
+  event.preventDefault();
+  const target = event.target.closest("[data-log-type]");
+  if (!target || !draggedQuickLogType) return;
+  const rect = target.getBoundingClientRect();
+  const horizontal = Math.abs(event.clientY - (rect.top + rect.height / 2)) < rect.height * 0.3;
+  const before = horizontal
+    ? event.clientX < rect.left + rect.width / 2
+    : event.clientY < rect.top + rect.height / 2;
+  reorderQuickLogCards(draggedQuickLogType, target.dataset.logType, before);
+  void saveQuickLogOrder();
+  suppressQuickLogClickUntil = Date.now() + 400;
+});
+quickActions.addEventListener("dragend", (event) => {
+  event.target.closest("[data-log-type]")?.classList.remove("is-dragging");
+  draggedQuickLogType = null;
+});
+quickActions.addEventListener("keydown", (event) => {
+  if (!event.altKey || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+  const card = event.target.closest("[data-log-type]");
+  if (!card) return;
+  event.preventDefault();
+  const cards = [...quickActions.children];
+  const index = cards.indexOf(card);
+  const nextIndex = index + (event.key === "ArrowUp" ? -1 : 1);
+  if (nextIndex < 0 || nextIndex >= cards.length) return;
+  reorderQuickLogCards(card.dataset.logType, cards[nextIndex].dataset.logType, event.key === "ArrowUp");
+  card.focus();
+  void saveQuickLogOrder();
 });
 document.querySelectorAll("[data-close-dialog]").forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
 typeSelect.addEventListener("change", () => renderDynamicFields(typeSelect.value));
@@ -553,14 +708,16 @@ function showActivityCategory(filter) {
   activityPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-document.querySelectorAll("[data-activity-filter]").forEach((card) => {
-  card.addEventListener("click", () => showActivityCategory(card.dataset.activityFilter));
-  card.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      showActivityCategory(card.dataset.activityFilter);
-    }
-  });
+const statsGrid = document.querySelector(".stats-grid");
+statsGrid.addEventListener("click", (event) => {
+  const card = event.target.closest("[data-activity-filter]");
+  if (card) showActivityCategory(card.dataset.activityFilter);
+});
+statsGrid.addEventListener("keydown", (event) => {
+  const card = event.target.closest("[data-activity-filter]");
+  if (!card || !["Enter", " "].includes(event.key)) return;
+  event.preventDefault();
+  showActivityCategory(card.dataset.activityFilter);
 });
 
 function updateNavigation(activeHref = location.hash === "#activity" ? "#activity" : "#today") {
@@ -675,20 +832,36 @@ activityList.addEventListener("click", async (event) => {
   }
 });
 
-document.querySelector("#clear-logs-button").addEventListener("click", async () => {
-  if (!logs.length || !profile.id || !window.confirm("Remove all feeding, sleep, diaper, care, and custom logs from your account?")) return;
-  const clearButton = document.querySelector("#clear-logs-button");
-  clearButton.disabled = true;
+const clearLogsButton = document.querySelector("#clear-logs-button");
+const confirmClearLogsButton = document.querySelector("#confirm-clear-logs");
+clearLogsButton.addEventListener("click", () => {
+  if (!logs.length || !profile.id) return;
+  const count = logs.length;
+  document.querySelector("#clear-logs-confirmation").textContent =
+    `This will permanently delete all ${count} ${count === 1 ? "log" : "logs"} for ${profile.name}. This cannot be undone.`;
+  document.querySelector("#clear-logs-error").textContent = "";
+  clearLogsDialog.showModal();
+  document.querySelector("#cancel-clear-logs").focus();
+});
+
+confirmClearLogsButton.addEventListener("click", async () => {
+  if (!logs.length || !profile.id) {
+    clearLogsDialog.close();
+    return;
+  }
+  confirmClearLogsButton.disabled = true;
+  document.querySelector("#clear-logs-error").textContent = "";
   try {
     const { error } = await supabase.from("care_logs").delete().eq("baby_id", profile.id);
     if (error) throw error;
     logs = [];
     renderDashboard();
+    clearLogsDialog.close();
     showToast("All logs removed");
   } catch (error) {
-    showToast(databaseError(error, "Removing logs"));
+    document.querySelector("#clear-logs-error").textContent = databaseError(error, "Removing logs");
   } finally {
-    clearButton.disabled = false;
+    confirmClearLogsButton.disabled = false;
   }
 });
 
@@ -697,6 +870,7 @@ function openProfileDialog() {
   document.querySelector("#baby-name").value = profile.name;
   document.querySelector("#baby-birthday").value = profile.birthday;
   draftCustomLogTypes = [...profile.customLogTypes];
+  draftQuickLogOrder = normalizeQuickLogOrder(profile.quickLogOrder, draftCustomLogTypes);
   renderCustomLogTypes();
   profileDialog.showModal();
   document.querySelector("#baby-name").focus();
@@ -709,7 +883,69 @@ function renderCustomLogTypes() {
   list.innerHTML = draftCustomLogTypes.length
     ? draftCustomLogTypes.map((name, index) => `<li><span>${escapeHTML(name)}</span><button class="text-button" type="button" data-remove-custom-log="${index}" aria-label="Remove ${escapeHTML(name)} log option">Remove</button></li>`).join("")
     : '<li class="custom-log-type-empty">No custom log options yet.</li>';
+  renderQuickLogOrderList();
 }
+
+function quickLogLabel(type) {
+  if (type.startsWith("custom:")) return type.slice("custom:".length);
+  return ({ feed: "Feeding", sleep: "Sleep", diaper: "Diaper", care: "Other care" })[type] || type;
+}
+
+function renderQuickLogOrderList() {
+  const list = document.querySelector("#quick-log-order-list");
+  draftQuickLogOrder = normalizeQuickLogOrder(draftQuickLogOrder, draftCustomLogTypes);
+  list.innerHTML = draftQuickLogOrder.map((type, index) => `<li draggable="true" data-order-type="${escapeHTML(type)}">
+    <span class="quick-log-order-name">${escapeHTML(quickLogLabel(type))}</span>
+    <span class="quick-log-order-controls">
+      <button type="button" class="order-move-button" data-move-order="up" aria-label="Move ${escapeHTML(quickLogLabel(type))} up"${index === 0 ? " disabled" : ""}>Up</button>
+      <button type="button" class="order-move-button" data-move-order="down" aria-label="Move ${escapeHTML(quickLogLabel(type))} down"${index === draftQuickLogOrder.length - 1 ? " disabled" : ""}>Down</button>
+    </span>
+  </li>`).join("");
+}
+
+document.querySelector("#quick-log-order-list").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-move-order]");
+  if (!button) return;
+  const item = button.closest("[data-order-type]");
+  const index = draftQuickLogOrder.indexOf(item.dataset.orderType);
+  const nextIndex = index + (button.dataset.moveOrder === "up" ? -1 : 1);
+  if (nextIndex < 0 || nextIndex >= draftQuickLogOrder.length) return;
+  [draftQuickLogOrder[index], draftQuickLogOrder[nextIndex]] = [draftQuickLogOrder[nextIndex], draftQuickLogOrder[index]];
+  renderQuickLogOrderList();
+  document.querySelector(`[data-order-type="${CSS.escape(item.dataset.orderType)}"] [data-move-order="${button.dataset.moveOrder}"]`)?.focus();
+});
+
+document.querySelector("#quick-log-order-list").addEventListener("dragstart", (event) => {
+  const item = event.target.closest("[data-order-type]");
+  if (!item) return;
+  draggedProfileOrderType = item.dataset.orderType;
+  item.classList.add("is-dragging");
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("text/plain", draggedProfileOrderType);
+});
+
+document.querySelector("#quick-log-order-list").addEventListener("dragover", (event) => {
+  if (draggedProfileOrderType) event.preventDefault();
+});
+
+document.querySelector("#quick-log-order-list").addEventListener("drop", (event) => {
+  event.preventDefault();
+  const target = event.target.closest("[data-order-type]");
+  if (!target || !draggedProfileOrderType) return;
+  const fromIndex = draftQuickLogOrder.indexOf(draggedProfileOrderType);
+  if (fromIndex < 0 || draggedProfileOrderType === target.dataset.orderType) return;
+  const rect = target.getBoundingClientRect();
+  const before = event.clientY < rect.top + rect.height / 2;
+  const [moved] = draftQuickLogOrder.splice(fromIndex, 1);
+  const targetIndex = draftQuickLogOrder.indexOf(target.dataset.orderType);
+  draftQuickLogOrder.splice(targetIndex + (before ? 0 : 1), 0, moved);
+  renderQuickLogOrderList();
+});
+
+document.querySelector("#quick-log-order-list").addEventListener("dragend", (event) => {
+  event.target.closest("[data-order-type]")?.classList.remove("is-dragging");
+  draggedProfileOrderType = null;
+});
 
 document.querySelector("#add-custom-log-type").addEventListener("click", () => {
   const input = document.querySelector("#new-custom-log-type");
@@ -762,9 +998,14 @@ document.querySelector("#profile-form").addEventListener("submit", async (event)
   try {
     const { data, error } = await supabase
       .from("baby_profiles")
-      .update({ name, birthday: birthday || null, custom_log_types: draftCustomLogTypes })
+      .update({
+        name,
+        birthday: birthday || null,
+        custom_log_types: draftCustomLogTypes,
+        quick_log_order: normalizeQuickLogOrder(draftQuickLogOrder, draftCustomLogTypes),
+      })
       .eq("id", profile.id)
-      .select("id, name, birthday, custom_log_types")
+      .select("id, name, birthday, custom_log_types, quick_log_order")
       .single();
     if (error) throw error;
     profile = {
@@ -772,6 +1013,7 @@ document.querySelector("#profile-form").addEventListener("submit", async (event)
       name: data.name,
       birthday: data.birthday || "",
       customLogTypes: data.custom_log_types || [],
+      quickLogOrder: data.quick_log_order || [],
     };
     updateProfileLabels();
     updateLogTypeOptions();
