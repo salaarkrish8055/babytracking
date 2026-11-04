@@ -120,11 +120,14 @@
               <span><strong>Feeding</strong><small>Log a feed</small></span>
               <span class="quick-plus" aria-hidden="true">+</span>
             </button>
-            <button type="button" class="quick-action sleep-action" data-log-type="sleep">
-              <span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.8A8 8 0 0 1 9.2 4.5a8.2 8.2 0 1 0 10.3 10.3Z"/><path d="m17.5 4 .5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5.5-1.5Z"/></svg></span>
-              <span><strong>Sleep</strong><small>Log a nap</small></span>
-              <span class="quick-plus" aria-hidden="true">+</span>
-            </button>
+            <div class="quick-action-card sleep-quick-card" id="sleep-quick-card" data-log-type="sleep">
+              <button type="button" class="quick-action sleep-action">
+                <span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.8A8 8 0 0 1 9.2 4.5a8.2 8.2 0 1 0 10.3 10.3Z"/><path d="m17.5 4 .5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5.5-1.5Z"/></svg></span>
+                <span><strong>Sleep</strong><small>Log a nap</small></span>
+                <span class="quick-plus" aria-hidden="true">+</span>
+              </button>
+              <div class="quick-sleep-wake-actions" id="quick-sleep-wake-actions" aria-label="End an in-progress sleep"></div>
+            </div>
             <button type="button" class="quick-action diaper-action" data-log-type="diaper">
               <span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14l-1.2 10a2 2 0 0 1-2 1.7H8.2a2 2 0 0 1-2-1.7L5 7.5Z"/><path d="M5 8 3.5 5.5M19 8l1.5-2.5M9 13c1.2 1.1 1.2 2.3 0 3.4M15 13c-1.2 1.1-1.2 2.3 0 3.4"/></svg></span>
               <span><strong>Diaper</strong><small>Log a change</small></span>

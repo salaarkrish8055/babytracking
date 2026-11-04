@@ -52,6 +52,7 @@ let pendingDeleteLogId = null;
 let confirmingClearLogs = false;
 let activityActionError = "";
 let activityActionInProgress = false;
+let endingSleepLogId = null;
 let overallSelectedTypes = new Set();
 let overallFieldIdCounter = 0;
 let editingHealthRecordId = null;
@@ -138,7 +139,19 @@ function renderDashboard() {
   setProgress("#care-progress", careLogs.length, 5);
   updateOverviewDateControls();
   renderCustomOverviewCards(todayLogs);
+  renderQuickSleepWakeActions();
   renderActivity();
+}
+
+function renderQuickSleepWakeActions() {
+  const container = document.querySelector("#quick-sleep-wake-actions");
+  const inProgressSleeps = logs
+    .filter((log) => log.type === "sleep" && Number(log.duration) === 0)
+    .sort((a, b) => new Date(b.time) - new Date(a.time));
+  container.innerHTML = inProgressSleeps.map((log) => {
+    const isSaving = endingSleepLogId === log.id;
+    return `<button type="button" class="quick-sleep-wake-button" data-woke-up="${escapeHTML(log.id)}"${isSaving ? " disabled" : ""} aria-label="Record wake-up time for sleep started at ${escapeHTML(formatTime(new Date(log.time)))}">${isSaving ? "Saving…" : "Woke up"}</button>`;
+  }).join("");
 }
 
 function sleepDurationForDay(log, day) {
@@ -205,11 +218,14 @@ function sleepActivityDetails(log) {
     timing = `Asleep at ${formatTime(start)} · Woke up ${wakeDate}at ${formatTime(storedTime)}`;
   }
   const note = log.note ? `<small class="activity-note">Note: ${escapeHTML(log.note)}</small>` : "";
+  const wakeButton = Number(log.duration) === 0
+    ? `<button class="button button-secondary wake-up-button" type="button" data-woke-up="${escapeHTML(log.id)}"${endingSleepLogId === log.id ? " disabled" : ""}>${endingSleepLogId === log.id ? "Saving…" : "Woke up"}</button>`
+    : "";
   return `<span class="activity-sleep-details">
     <small class="activity-sleep-duration">${formatSleepDuration(duration)}</small>
     <small class="activity-sleep-times">${timing}</small>
     ${note}
-  </span>`;
+  </span>${wakeButton}`;
 }
 
 function sleepDurationMinutes(log) {
@@ -284,7 +300,7 @@ function renderActivityItem(log) {
     : `<small>${activityDescription(log)}${note}</small>`;
   return `<article class="activity-item">
     <span class="activity-type-icon ${log.type}">${icons[log.type] || icons.care}</span>
-    <span class="activity-copy${log.type === "sleep" ? " sleep-activity-copy" : ""}"><strong>${escapeHTML(label)}</strong>${activityDetails}</span>
+    <div class="activity-copy${log.type === "sleep" ? " sleep-activity-copy" : ""}"><strong>${escapeHTML(label)}</strong>${activityDetails}</div>
     <span class="activity-meta"><time class="activity-time" datetime="${escapeHTML(when.toISOString())}">${formatTime(when)}</time>${actionMarkup}</span>
     ${confirmationMarkup}
     ${isPendingDelete && activityActionError ? `<span class="activity-action-error" role="alert">${escapeHTML(activityActionError)}</span>` : ""}
@@ -773,10 +789,12 @@ function applyQuickLogOrder(order) {
 function updateQuickLogCardPositions() {
   const cards = [...quickActions.children];
   cards.forEach((card, index) => {
-    card.setAttribute("aria-keyshortcuts", "Alt+ArrowUp Alt+ArrowDown");
-    card.setAttribute("aria-label", `${card.querySelector("strong").textContent}. Press Alt+Up or Alt+Down to change card order.`);
+    const handle = card.querySelector(".quick-action") || card;
+    handle.setAttribute("aria-keyshortcuts", "Alt+ArrowUp Alt+ArrowDown");
+    handle.setAttribute("aria-label", `${card.querySelector("strong").textContent}. Press Alt+Up or Alt+Down to change card order.`);
     card.setAttribute("aria-posinset", String(index + 1));
     card.setAttribute("aria-setsize", String(cards.length));
+    if (card.classList.contains("quick-action-card")) card.setAttribute("role", "group");
     card.draggable = true;
   });
 }
@@ -1296,11 +1314,20 @@ document.querySelector("#sign-out-profile").addEventListener("click", signOut);
 document.querySelectorAll("[data-open-log]").forEach((button) => button.addEventListener("click", () => openLogDialog()));
 quickActions.addEventListener("click", (event) => {
   if (Date.now() < suppressQuickLogClickUntil) return;
+  const wokeUpButton = event.target.closest("[data-woke-up]");
+  if (wokeUpButton) {
+    void recordWakeUp(wokeUpButton.dataset.wokeUp);
+    return;
+  }
   const button = event.target.closest("[data-log-type]");
-  if (button) openLogDialog(button.dataset.logType);
+  if (button && !event.target.closest("[data-log-type] .quick-sleep-wake-actions")) openLogDialog(button.dataset.logType);
 });
 let suppressQuickLogClickUntil = 0;
 quickActions.addEventListener("dragstart", (event) => {
+  if (event.target.closest(".quick-sleep-wake-actions")) {
+    event.preventDefault();
+    return;
+  }
   const card = event.target.closest("[data-log-type]");
   if (!card || quickLogOrderSaveInProgress) {
     event.preventDefault();
@@ -1341,7 +1368,7 @@ quickActions.addEventListener("keydown", (event) => {
   const nextIndex = index + (event.key === "ArrowUp" ? -1 : 1);
   if (nextIndex < 0 || nextIndex >= cards.length) return;
   reorderQuickLogCards(card.dataset.logType, cards[nextIndex].dataset.logType, event.key === "ArrowUp");
-  card.focus();
+  (card.querySelector(".quick-action") || card).focus();
   void saveQuickLogOrder();
 });
 document.querySelectorAll("[data-close-dialog]").forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
@@ -1861,6 +1888,11 @@ document.querySelector("#overall-log-form").addEventListener("submit", async (ev
 });
 
 activityList.addEventListener("click", async (event) => {
+  const wokeUpButton = event.target.closest("[data-woke-up]");
+  if (wokeUpButton) {
+    await recordWakeUp(wokeUpButton.dataset.wokeUp);
+    return;
+  }
   const cancelDeleteButton = event.target.closest("[data-cancel-delete]");
   if (cancelDeleteButton) {
     pendingDeleteLogId = null;
@@ -1890,6 +1922,45 @@ activityList.addEventListener("click", async (event) => {
   activityActionError = "";
   renderActivity();
 });
+
+async function recordWakeUp(logId) {
+  if (!profile.id || endingSleepLogId) return;
+  const log = logs.find((item) => item.id === logId && item.type === "sleep" && Number(item.duration) === 0);
+  if (!log) return;
+  const wokeAt = new Date();
+  const sleepStartedAt = new Date(log.time);
+  if (Number.isNaN(sleepStartedAt.getTime()) || wokeAt <= sleepStartedAt) {
+    setSyncError("Wake-up time must be after the sleep start time.");
+    return;
+  }
+  const duration = Math.max(1, Math.round((wokeAt.getTime() - sleepStartedAt.getTime()) / 60000));
+  endingSleepLogId = logId;
+  renderQuickSleepWakeActions();
+  renderActivity();
+  try {
+    const { data, error } = await supabase
+      .from("care_logs")
+      .update({ occurred_at: wokeAt.toISOString(), duration_minutes: duration })
+      .eq("id", logId)
+      .eq("baby_id", profile.id)
+      .eq("type", "sleep")
+      .or("duration_minutes.is.null,duration_minutes.eq.0")
+      .select("id, type, occurred_at, note, method, amount_ml, duration_minutes, left_duration_minutes, right_duration_minutes, change_type, care_label")
+      .single();
+    if (error) throw error;
+    const updatedLog = mapDatabaseLog(data);
+    logs = logs.map((item) => item.id === logId ? updatedLog : item);
+    setSyncError("");
+    renderDashboard();
+    showToast("Wake-up time saved");
+  } catch (error) {
+    setSyncError(databaseError(error, "Recording wake-up time"));
+  } finally {
+    endingSleepLogId = null;
+    renderQuickSleepWakeActions();
+    renderActivity();
+  }
+}
 
 async function deleteLog(logId) {
   activityActionInProgress = true;
