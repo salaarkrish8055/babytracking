@@ -364,6 +364,22 @@ h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spaci
 .feed-amount-option:hover { border-color: #c9c3f4; }
 .feed-amount-option[aria-pressed="true"] { color: var(--purple-dark); background: var(--purple-pale); border-color: #bcb4ef; }
 .feed-amount-option:focus-visible { outline: 3px solid #7669d54d; outline-offset: 2px; }
+.breast-duration-field { min-width: 0; padding: 11px; background: #fbfaff; border: 1px solid #eeebfa; border-radius: 10px; }
+.breast-duration-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.breast-duration-option { min-width: 0; min-height: 36px; padding: 6px 4px; color: #70768a; background: #fff; border: 1px solid #e6e8ef; border-radius: 8px; font-size: 11px; font-weight: 600; transition: background .15s, border-color .15s, color .15s; }
+.breast-duration-option:hover { border-color: #c9c3f4; }
+.breast-duration-option[aria-pressed="true"] { color: var(--purple-dark); background: var(--purple-pale); border-color: #bcb4ef; }
+.breast-duration-option:focus-visible { outline: 3px solid #7669d54d; outline-offset: 2px; }
+.breast-duration-custom { display: grid; gap: 7px; margin-top: 9px; }
+.breast-duration-custom[hidden] { display: none; }
+.feed-breastfeeding-fields[hidden] { display: none; }
+.feed-duration-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.feed-duration-option { min-width: 0; min-height: 36px; padding: 6px 4px; color: #70768a; background: #fff; border: 1px solid #e6e8ef; border-radius: 8px; font-size: 11px; font-weight: 600; transition: background .15s, border-color .15s, color .15s; }
+.feed-duration-option:hover { border-color: #c9c3f4; }
+.feed-duration-option[aria-pressed="true"] { color: var(--purple-dark); background: var(--purple-pale); border-color: #bcb4ef; }
+.feed-duration-option:focus-visible { outline: 3px solid #7669d54d; outline-offset: 2px; }
+.feed-duration-custom { display: grid; gap: 7px; margin-top: 9px; }
+.feed-duration-custom[hidden] { display: none; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-hint { margin: -4px 0 13px; color: #969baa; font-size: 10px; }
 .form-error { min-height: 0; color: #ba596e; font-size: 10px; }
@@ -573,6 +589,13 @@ h2 { margin: 0; color: #303548; font-size: 17px; line-height: 1.35; letter-spaci
   .overall-log-section .feed-method-option { min-width: 0; min-height: 42px; padding: 7px 5px; font-size: 11px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
   .overall-log-section .feed-amount-options { gap: 5px; }
   .overall-log-section .feed-amount-option { min-width: 0; min-height: 40px; padding: 5px 3px; font-size: 12px; }
+  .overall-log-section .breast-duration-field { padding: 9px; }
+  .overall-log-section .breast-duration-options { gap: 5px; }
+  .overall-log-section .breast-duration-option { min-height: 40px; padding: 5px 3px; font-size: 12px; }
+  .overall-log-section .feed-duration-options { gap: 5px; }
+  .overall-log-section .feed-duration-option { min-height: 40px; padding: 5px 3px; font-size: 12px; }
+  .breast-duration-option { min-height: 44px; font-size: 13px; }
+  .feed-duration-option { min-height: 44px; font-size: 13px; }
   .form-hint { font-size: 10px; line-height: 1.45; overflow-wrap: anywhere; }
   .form-row { grid-template-columns: 1fr; gap: 0; }
   .overall-log-section .form-row { grid-template-columns: 1fr; gap: 0; }
