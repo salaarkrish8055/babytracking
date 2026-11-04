@@ -188,14 +188,17 @@
                 <h2>Activity history</h2>
               </div>
               <div class="activity-controls">
-                <label class="sr-only" for="activity-filter">Filter activity</label>
-                <select id="activity-filter" class="filter-select">
-                  <option value="all">All activity</option>
-                  <option value="feed">Feeding</option>
-                  <option value="sleep">Sleep</option>
-                  <option value="diaper">Diaper</option>
-                  <option value="care">Other care</option>
-                </select>
+                <div class="activity-filter-group" role="group" aria-label="Filter activity">
+                  <button type="button" class="activity-filter-chip" data-activity-filter-chip="all" aria-pressed="true">All</button>
+                  <button type="button" class="activity-filter-chip" data-activity-filter-chip="feed" aria-pressed="false">Feeding</button>
+                  <button type="button" class="activity-filter-chip" data-activity-filter-chip="sleep" aria-pressed="false">Sleep</button>
+                  <label class="sr-only" for="activity-filter">More activity filters</label>
+                  <select id="activity-filter" class="filter-select" aria-label="More activity filters">
+                    <option value="" disabled>More</option>
+                    <option value="diaper">Diaper</option>
+                    <option value="care">Other care</option>
+                  </select>
+                </div>
                 <button type="button" class="text-button" id="edit-logs-mode" aria-pressed="false">Edit</button>
                 <button type="button" class="text-button" id="delete-logs-mode" aria-pressed="false">Delete</button>
                 <button type="button" class="text-button" id="cancel-log-action" hidden>Cancel</button>

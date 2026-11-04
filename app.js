@@ -31,6 +31,7 @@ const toast = document.querySelector("#toast");
 
 let logs = [];
 let healthRecords = [];
+let activeActivityFilter = "all";
 let profile = { id: null, name: "Krish", birthday: "", customLogTypes: [], quickLogOrder: [] };
 let draftCustomLogTypes = [];
 let draftQuickLogOrder = [];
@@ -223,7 +224,12 @@ function formatSleepDuration(minutes) {
 }
 
 function renderActivity() {
-  const filter = document.querySelector("#activity-filter").value;
+  const filter = activeActivityFilter;
+  document.querySelectorAll("[data-activity-filter-chip]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.activityFilterChip === filter));
+  });
+  const activityFilter = document.querySelector("#activity-filter");
+  activityFilter.value = filter === "all" || filter === "feed" || filter === "sleep" ? "" : filter;
   document.querySelectorAll("[data-activity-filter]").forEach((card) => {
     card.setAttribute("aria-pressed", String(card.dataset.activityFilter === filter));
   });
@@ -690,6 +696,7 @@ function handleDynamicFieldButton(event) {
 
 function updateLogTypeOptions() {
   const selectedLogType = typeSelect.value;
+  const selectedActivityFilter = activeActivityFilter;
   typeSelect.querySelectorAll("[data-custom-log-type]").forEach((option) => option.remove());
   document.querySelectorAll("#activity-filter [data-custom-log-type]").forEach((option) => option.remove());
   quickActions.querySelectorAll("[data-custom-log-type]").forEach((button) => button.remove());
@@ -701,11 +708,13 @@ function updateLogTypeOptions() {
     logOption.dataset.customLogType = "";
     typeSelect.append(logOption);
 
-    const filterOption = document.createElement("option");
-    filterOption.value = value;
-    filterOption.textContent = name;
-    filterOption.dataset.customLogType = "";
-    document.querySelector("#activity-filter").append(filterOption);
+    if (![...document.querySelector("#activity-filter").options].some((option) => option.value === value)) {
+      const filterOption = document.createElement("option");
+      filterOption.value = value;
+      filterOption.textContent = name;
+      filterOption.dataset.customLogType = "";
+      document.querySelector("#activity-filter").append(filterOption);
+    }
 
     const quickAction = document.createElement("button");
     quickAction.type = "button";
@@ -716,6 +725,11 @@ function updateLogTypeOptions() {
     quickActions.append(quickAction);
   }
   applyQuickLogOrder(profile.quickLogOrder);
+  activeActivityFilter = selectedActivityFilter === "all" || selectedActivityFilter === "feed" || selectedActivityFilter === "sleep"
+    || [...document.querySelector("#activity-filter").options].some((option) => option.value === selectedActivityFilter)
+    ? selectedActivityFilter
+    : "all";
+  renderActivity();
   if ([...typeSelect.options].some((option) => option.value === selectedLogType)) {
     typeSelect.value = selectedLogType;
   }
@@ -1333,7 +1347,16 @@ quickActions.addEventListener("keydown", (event) => {
 document.querySelectorAll("[data-close-dialog]").forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
 typeSelect.addEventListener("change", () => renderDynamicFields(typeSelect.value));
 const activityFilter = document.querySelector("#activity-filter");
-activityFilter.addEventListener("change", renderActivity);
+activityFilter.addEventListener("change", () => {
+  if (activityFilter.value) activeActivityFilter = activityFilter.value;
+  renderActivity();
+});
+document.querySelector(".activity-filter-group").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-activity-filter-chip]");
+  if (!button) return;
+  activeActivityFilter = button.dataset.activityFilterChip;
+  renderActivity();
+});
 
 function changeOverviewDate(days) {
   const nextDate = new Date(overviewDate);
@@ -1358,7 +1381,7 @@ document.querySelector("#overview-date").addEventListener("change", (event) => {
 });
 
 function showActivityCategory(filter) {
-  activityFilter.value = filter;
+  activeActivityFilter = filter;
   renderActivity();
   if (location.hash === "#health") {
     history.pushState(null, "", "#today");
